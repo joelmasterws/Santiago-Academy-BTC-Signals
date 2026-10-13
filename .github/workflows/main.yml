@@ -1,0 +1,47 @@
+name: Santiago Academy Daily BTC Signal
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 1:30 AM Pacific: 08:30 UTC in daylight time, 09:30 UTC in standard time.
+    - cron: '30 8 * * *'
+    - cron: '30 9 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  send-signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Pacific time (manual runs always allowed)
+        id: timing
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          now = datetime.now(ZoneInfo('America/Los_Angeles'))
+          allowed = os.environ['EVENT_NAME'] == 'workflow_dispatch' or (now.hour == 1 and now.minute >= 30 and now.minute < 50)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"run_signal={'true' if allowed else 'false'}\n")
+          print(f"Pacific time: {now.isoformat()}, execute: {allowed}")
+          PY
+      - name: Check out repository
+        if: steps.timing.outputs.run_signal == 'true'
+        uses: actions/checkout@v4
+      - name: Set up Python
+        if: steps.timing.outputs.run_signal == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        if: steps.timing.outputs.run_signal == 'true'
+        run: python -m pip install -r requirements.txt
+      - name: Generate and post BTC signal to Discord
+        if: steps.timing.outputs.run_signal == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python btc_signal.py
