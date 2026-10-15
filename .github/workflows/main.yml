@@ -3,9 +3,9 @@ name: Santiago Academy Daily BTC Signal
 on:
   workflow_dispatch:
   schedule:
-    # Both UTC hours cover 1:30 AM Pacific across daylight saving changes.
-    - cron: '30 8 * * *'
-    - cron: '30 9 * * *'
+    # Start the 30-minute review at 1:00 AM Pacific (PDT / PST).
+    - cron: '0 8 * * *'
+    - cron: '0 9 * * *'
 
 permissions:
   contents: read
@@ -17,8 +17,9 @@ concurrency:
 jobs:
   send-signal:
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
-      - name: Check Pacific schedule
+      - name: Select correct Pacific schedule (manual tests always run)
         id: timing
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -26,20 +27,19 @@ jobs:
         run: |
           python - <<'PY'
           import os
-          from datetime import datetime
+          from datetime import datetime, timezone
           from zoneinfo import ZoneInfo
-
-          now = datetime.now(ZoneInfo('America/Los_Angeles'))
+          pacific = ZoneInfo('America/Los_Angeles')
+          # Check offset for the Pacific date of the intended schedule, not the delayed runner time.
+          now = datetime.now(timezone.utc)
+          day = now.astimezone(pacific).date()
+          local_one = datetime(day.year, day.month, day.day, 1, 0, tzinfo=pacific)
+          expected = '0 8 * * *' if local_one.utcoffset().total_seconds() == -7 * 3600 else '0 9 * * *'
           event = os.environ['EVENT_NAME']
-          cron = os.environ.get('SCHEDULE', '')
-          # Select the cron that corresponds to 1:30 AM in the current
-          # Pacific UTC offset, even when GitHub starts the run late.
-          expected_cron = '30 8 * * *' if now.utcoffset().total_seconds() == -7 * 3600 else '30 9 * * *'
-          allowed = event == 'workflow_dispatch' or (event == 'schedule' and cron == expected_cron)
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f"run_signal={'true' if allowed else 'false'}\n")
-          print(f"Pacific time: {now.isoformat()}")
-          print(f"Event: {event}; triggered cron: {cron or 'manual'}; expected cron: {expected_cron}; execute: {allowed}")
+          selected = event == 'workflow_dispatch' or (event == 'schedule' and os.environ.get('SCHEDULE') == expected)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"run_signal={'true' if selected else 'false'}\n")
+          print(f'Pacific time: {now.astimezone(pacific).isoformat()}; event={event}; expected={expected}; selected={selected}')
           PY
       - name: Check out repository
         if: steps.timing.outputs.run_signal == 'true'
@@ -49,13 +49,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+      - name: Install and verify dependencies
         if: steps.timing.outputs.run_signal == 'true'
         run: |
           python -m pip install -r requirements.txt
           python -c 'import requests, pandas, numpy; print("Python dependencies verified")'
-      - name: Generate and post BTC signal to Discord
+      - name: Monitor BTC 1:00–1:30 AM Pacific and post premium signal
         if: steps.timing.outputs.run_signal == 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: python -u btc_signal.py
