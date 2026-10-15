@@ -1,4 +1,3 @@
-print("SANTIAGO_ACADEMY_SCRIPT_LOADED", flush=True)
 """Santiago Academy Premium BTC/USD educational analysis; never places orders."""
 import os
 from datetime import datetime, timedelta, timezone
@@ -127,3 +126,7 @@ def main():
     result = response.json()
     if not result.get("id"):
         raise RuntimeError("Discord did not return a message ID")
+    print("BTC_PREMIUM_DISCORD_SENT message_id=" + str(result["id"]), flush=True)
+
+if __name__ == "__main__":
+    main()
