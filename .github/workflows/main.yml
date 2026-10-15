@@ -3,31 +3,43 @@ name: Santiago Academy Daily BTC Signal
 on:
   workflow_dispatch:
   schedule:
-    # 1:30 AM Pacific: 08:30 UTC in daylight time, 09:30 UTC in standard time.
+    # Both UTC hours cover 1:30 AM Pacific across daylight saving changes.
     - cron: '30 8 * * *'
     - cron: '30 9 * * *'
 
 permissions:
   contents: read
 
+concurrency:
+  group: santiago-academy-btc-daily
+  cancel-in-progress: false
+
 jobs:
   send-signal:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Pacific time (manual runs always allowed)
+      - name: Check Pacific schedule
         id: timing
         env:
           EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           python - <<'PY'
           import os
           from datetime import datetime
           from zoneinfo import ZoneInfo
+
           now = datetime.now(ZoneInfo('America/Los_Angeles'))
-          allowed = os.environ['EVENT_NAME'] == 'workflow_dispatch' or (now.hour == 1 and now.minute >= 30 and now.minute < 50)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"run_signal={'true' if allowed else 'false'}\n")
-          print(f"Pacific time: {now.isoformat()}, execute: {allowed}")
+          event = os.environ['EVENT_NAME']
+          cron = os.environ.get('SCHEDULE', '')
+          # Select the cron that corresponds to 1:30 AM in the current
+          # Pacific UTC offset, even when GitHub starts the run late.
+          expected_cron = '30 8 * * *' if now.utcoffset().total_seconds() == -7 * 3600 else '30 9 * * *'
+          allowed = event == 'workflow_dispatch' or (event == 'schedule' and cron == expected_cron)
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f"run_signal={'true' if allowed else 'false'}\n")
+          print(f"Pacific time: {now.isoformat()}")
+          print(f"Event: {event}; triggered cron: {cron or 'manual'}; expected cron: {expected_cron}; execute: {allowed}")
           PY
       - name: Check out repository
         if: steps.timing.outputs.run_signal == 'true'
@@ -39,9 +51,11 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         if: steps.timing.outputs.run_signal == 'true'
-        run: python -m pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -c 'import requests, pandas, numpy; print("Python dependencies verified")'
       - name: Generate and post BTC signal to Discord
         if: steps.timing.outputs.run_signal == 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: python btc_signal.py
+        run: python -u btc_signal.py
