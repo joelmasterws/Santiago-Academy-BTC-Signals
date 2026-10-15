@@ -58,26 +58,29 @@ def build_signal():
     start = now.replace(hour=1, minute=0, second=0, microsecond=0)
     end = start + timedelta(minutes=30)
     window = m5.loc[(m5["open_time"] >= pd.Timestamp(start.astimezone(timezone.utc))) &
-                    (m5["close_time"] < pd.Timestamp(end.astimezone(timezone.utc)))].copy()
+                    (m5["close_time"] <= pd.Timestamp(end.astimezone(timezone.utc)))].copy()
     # A manual test outside the 1:00–1:30 AM period must not pretend a full review occurred.
-    completed_window = now >= end and len(window) >= 6
-    if completed_window:
+    completed_window = now >= end and len(window) == 6
+    if not window.empty:
         high, low = float(window["high"].max()), float(window["low"].min())
         vol = float(window["volume"].sum())
-        typical = (window["high"]+window["low"]+window["close"])/3
-        vwap = float((typical*window["volume"]).sum()/vol) if vol > 0 else None
-        window_note = f"1:00–1:30 AM PT review: {len(window)} completed 5m candles | H {usd(high)} / L {usd(low)} | VWAP {usd(vwap) if vwap is not None else 'N/A'}"
+        typical = (window["high"] + window["low"] + window["close"]) / 3
+        vwap = float((typical * window["volume"]).sum() / vol) if vol > 0 else None
+        status = "COMPLETE" if completed_window else "PARTIAL — early analysis"
+        window_note = (f"**1:00–1:30 AM PT session:** {status} | "
+                       f"{len(window)}/6 completed 5m candles | H {usd(high)} / L {usd(low)} | "
+                       f"VWAP {usd(vwap) if vwap is not None else 'N/A'}")
     else:
         high, low, vwap = None, None, None
-        window_note = "1:00–1:30 AM PT review: incomplete/unavailable (manual test or early run)"
+        window_note = "**1:00–1:30 AM PT session:** UNAVAILABLE — no completed candles in window"
     bull = price > a["ema50"] > a["ema200"] and price > b["ema50"] and a["macd"] > 0 and 50 <= a["rsi"] <= 68
     bear = price < a["ema50"] < a["ema200"] and price < b["ema50"] and a["macd"] < 0 and 32 <= a["rsi"] <= 50
     direction = "BULLISH" if bull else "BEARISH" if bear else "NO TRADE"
     reasons = []
     if direction == "NO TRADE":
         reasons.append("Trend, momentum and RSI filters do not all align.")
-    if not completed_window:
-        reasons.append("Full 1:00–1:30 AM review is not confirmed.")
+    if window.empty:
+        reasons.append("No completed session candles to define a defensible stop.")
         direction = "NO TRADE"
     header = (f"📊 **SANTIAGO ACADEMY | PREMIUM BTC/USD SIGNAL**\n"
               f"**Time:** {now:%b %d, %Y %I:%M %p} Pacific\n"
@@ -103,7 +106,7 @@ def build_signal():
             return (header + f"**Entry watch zone:** {usd(entry_range[0])}–{usd(entry_range[1])} (conditional, not a market order)\n"
                     f"**Stop:** {usd(stop)} | **TP1:** {usd(targets[0])} (1:1)\n"
                     f"**TP2:** {usd(targets[1])} (1:2) | **TP3:** {usd(targets[2])} (1:3)\n"
-                    f"**Reasoning:** 1H/4H trend and momentum aligned; stop based on session extreme.\n"
+                    f"**Reasoning:** 1H/4H trend and momentum aligned; stop based on observed session extreme (partial if early).\n"
                     f"**Invalidation:** Break of {usd(stop)}; cancel if setup changes before entry.\n"
                     f"⚠️ Educational analysis only, not financial advice. Crypto trading can result in total loss.")
     header = header.replace(f"**Decision:** **{'BULLISH' if bull else 'BEARISH'}**", "**Decision:** **NO TRADE**")
