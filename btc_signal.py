@@ -1,3 +1,4 @@
+print("SANTIAGO_ACADEMY_SCRIPT_LOADED", flush=True)
 """Santiago Academy Premium BTC/USD educational analysis; never places orders."""
 import os
 from datetime import datetime, timedelta, timezone
