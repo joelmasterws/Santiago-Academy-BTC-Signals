@@ -1,62 +1,62 @@
-name: Santiago Academy Daily BTC Signal
-
+name: Santiago Academy Premium Crypto Signals
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run scans only; test-discord sends a test; live posts qualified signals'
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run
+          - test-discord
+          - live
   schedule:
-    # Start the 30-minute review at 1:00 AM Pacific (PDT / PST).
-    - cron: '0 8 * * *'
-    - cron: '0 9 * * *'
-
+    - cron: '3,18,33,48 * * * *'
 permissions:
-  contents: read
-
+  contents: write
 concurrency:
-  group: santiago-academy-btc-daily
+  group: santiago-academy-premium-crypto
   cancel-in-progress: false
-
 jobs:
   send-signal:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 12
     steps:
-      - name: Select correct Pacific schedule (manual tests always run)
-        id: timing
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          python - <<'PY'
-          import os
-          from datetime import datetime, timezone
-          from zoneinfo import ZoneInfo
-          pacific = ZoneInfo('America/Los_Angeles')
-          # Check offset for the Pacific date of the intended schedule, not the delayed runner time.
-          now = datetime.now(timezone.utc)
-          day = now.astimezone(pacific).date()
-          local_one = datetime(day.year, day.month, day.day, 1, 0, tzinfo=pacific)
-          expected = '0 8 * * *' if local_one.utcoffset().total_seconds() == -7 * 3600 else '0 9 * * *'
-          event = os.environ['EVENT_NAME']
-          selected = event == 'workflow_dispatch' or (event == 'schedule' and os.environ.get('SCHEDULE') == expected)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"run_signal={'true' if selected else 'false'}\n")
-          print(f'Pacific time: {now.astimezone(pacific).isoformat()}; event={event}; expected={expected}; selected={selected}')
-          PY
       - name: Check out repository
-        if: steps.timing.outputs.run_signal == 'true'
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - name: Set up Python
-        if: steps.timing.outputs.run_signal == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install and verify dependencies
-        if: steps.timing.outputs.run_signal == 'true'
-        run: |
-          python -m pip install -r requirements.txt
-          python -c 'import requests, pandas, numpy; print("Python dependencies verified")'
-      - name: Monitor BTC 1:00–1:30 AM Pacific and post premium signal
-        if: steps.timing.outputs.run_signal == 'true'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Scan ten cryptocurrencies and optionally post to test Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: python -u btc_signal.py
+          SA_DISCORD_ROLE_IDS: ${{ vars.SA_DISCORD_ROLE_IDS }}
+          SA_SIGNAL_STATE: signal_state.json
+          MODE: ${{ inputs.mode }}
+          EVENT_NAME: ${{ github.event_name }}
+          MULTI_CRYPTO_LIVE_ENABLED: ${{ vars.MULTI_CRYPTO_LIVE_ENABLED }}
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            if [[ "$MULTI_CRYPTO_LIVE_ENABLED" == "true" ]]; then MODE=live; else MODE=dry-run; fi
+          fi
+          case "$MODE" in
+            live) python -u btc_signal.py ;;
+            test-discord) python -u btc_signal.py --test-discord ;;
+            *) python -u btc_signal.py --dry-run ;;
+          esac
+      - name: Persist duplicate protection
+        if: success() && (inputs.mode == 'live' || (github.event_name == 'schedule' && vars.MULTI_CRYPTO_LIVE_ENABLED == 'true'))
+        run: |
+          if [[ ! -f signal_state.json ]]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add signal_state.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: save signal dedupe state [skip ci]'
+          git push
