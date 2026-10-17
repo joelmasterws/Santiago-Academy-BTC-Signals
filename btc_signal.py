@@ -5,6 +5,7 @@ import io
 import json
 import os
 import sys
+import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import signal_tracking as tracking
+from discord_delivery import acknowledged_post
 
 ASSETS = ('BTC','ETH','BNB','XRP','SOL','DOGE','TRX','ADA','LINK','AVAX')
 API = 'https://api.binance.us/api/v3/klines'
@@ -161,28 +163,37 @@ def save_state(state):
 
 
 def post(s, png, webhook, role_ids):
-    content=message(s)
+    content = message(s)
     if role_ids:
-        content=' '.join(f'<@&{role}>' for role in role_ids)+'\n'+content
-    if len(content)>2000:raise ValueError('Discord content exceeds 2000 characters')
-    # Wait=true requires Discord to return a message ID, not just a successful HTTP code.
-    for attempt in range(3):
-        png.seek(0)
-        try:
-            response=SESSION.post(webhook,params={'wait':'true'},
-                data={'payload_json':json.dumps({'content':content,'allowed_mentions':{'parse':[],'roles':role_ids}})},
-                files={'files[0]':(f'{s["symbol"]}_signal.png',png,'image/png')},timeout=40)
-            if response.status_code==429:
-                delay=min(float(response.json().get('retry_after',2)),30)
-                time.sleep(delay);continue
-            response.raise_for_status()
-            body=response.json()
-            if not body.get('id'):raise RuntimeError('Discord did not return message ID')
-            return body['id']
-        except requests.RequestException:
-            if attempt==2:raise
-            time.sleep(2**attempt)
-    raise RuntimeError('Discord rate limited after retries')
+        content = ' '.join(f'<@&{role}>' for role in role_ids) + '\n' + content
+    if len(content) > 2000:
+        raise ValueError('Discord content exceeds 2000 characters')
+    return acknowledged_post(SESSION, webhook, payload={
+        'content': content,
+        'allowed_mentions': {'parse': [], 'roles': role_ids}},
+        image=png, filename=f'{s["symbol"]}_signal.png')
+
+
+def checkpoint(state):
+    """Durably save each acknowledged Discord message before the next send.
+
+    On GitHub Actions, push the checkpoint immediately; a later run failure must
+    not lose already-posted result acknowledgements.
+    """
+    save_state(state)
+    if os.environ.get('SA_GIT_CHECKPOINT') != 'true':
+        return
+    subprocess.run(['git', 'add', '--', str(STATE_PATH)], check=True)
+    changed = subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode
+    if changed == 0:
+        return
+    if changed != 1:
+        raise RuntimeError('Unable to inspect state checkpoint')
+    subprocess.run(['git', '-c', 'user.name=github-actions[bot]',
+                    '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com',
+                    'commit', '-m', 'chore: checkpoint Discord signal state [skip ci]'], check=True)
+    subprocess.run(['git', 'push'], check=True)
+    print('STATE_CHECKPOINT_PUSHED', flush=True)
 
 
 def main():
@@ -219,12 +230,13 @@ def main():
                 if tracked.get('result') in ('WIN','LOSS') and not tracked.get('result_posted'):
                     mid=tracking.send_result(SESSION,webhook,tracked)
                     tracked['result_posted']=mid
+                    checkpoint(state)
                     print(f'{tracked["symbol"]}: FINAL_RESULT {tracked["result"]} message={mid}',flush=True)
                 save_state(state)
             except Exception as exc:
                 print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
                 raise
-        reports=tracking.due_reports(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook)
+        reports=tracking.due_reports(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook,checkpoint=lambda: checkpoint(state))
         if reports: print('REPORT_IMAGES_POSTED '+','.join(reports),flush=True)
         save_state(state)
     count=0
@@ -249,7 +261,7 @@ def main():
             issued=datetime.now(timezone.utc)
             state['sent'][signal['key']]=issued.timestamp()
             state['signals'][signal['key']]=tracking.record_signal(signal,message_id,issued)
-            save_state(state)
+            checkpoint(state)
             count+=1
             print(f'{symbol}: DISCORD_SENT id={message_id}',flush=True)
         except (requests.RequestException,ValueError,RuntimeError,KeyError,IndexError) as exc:
