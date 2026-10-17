@@ -1,155 +1,262 @@
-"""Santiago Academy historical educational signal outcome tracking."""
-from datetime import datetime, timedelta, timezone
+"""Santiago Academy multi-asset educational Discord signals. Never places orders."""
+import argparse
+import hashlib
+import io
+import json
+import os
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
 import requests
+import signal_tracking as tracking
 
+ASSETS = ('BTC','ETH','BNB','XRP','SOL','DOGE','TRX','ADA','LINK','AVAX')
+API = 'https://api.binance.us/api/v3/klines'
 PT = ZoneInfo('America/Los_Angeles')
-ENTRY_EXPIRY_HOURS = 24
-ACTIVE_EXPIRY_HOURS = 72
+SESSION = requests.Session()
+SESSION.headers.update({'User-Agent':'SantiagoAcademyCryptoSignals/1.0'})
+STATE_PATH = Path(os.getenv('SA_SIGNAL_STATE', 'signal_state.json'))
 
 
-def stamp(dt):
-    return dt.astimezone(timezone.utc).isoformat()
+def candles(symbol, interval, limit=260):
+    resp = SESSION.get(API, params={'symbol':symbol+'USD','interval':interval,'limit':limit}, timeout=25)
+    resp.raise_for_status()
+    rows = resp.json()
+    if not isinstance(rows,list) or len(rows)<205:
+        raise ValueError(f'{symbol} {interval}: insufficient candles')
+    df = pd.DataFrame(rows)
+    for index,name in [(1,'open'),(2,'high'),(3,'low'),(4,'close'),(5,'volume')]:
+        df[name] = pd.to_numeric(df[index],errors='raise')
+    df['close_time'] = pd.to_datetime(df[6],unit='ms',utc=True)
+    df = df[df['close_time']<pd.Timestamp.now(tz='UTC')].copy()
+    if len(df)<200: raise ValueError(f'{symbol} {interval}: insufficient closed candles')
+    if pd.Timestamp.now(tz='UTC')-df.iloc[-1]['close_time'] > pd.Timedelta(minutes={'15m':45,'1h':150,'4h':600}[interval]):
+        raise ValueError(f'{symbol} {interval}: stale candles')
+    return df
 
 
-def dtparse(value):
-    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+def metrics(df):
+    c=df['close']; delta=c.diff()
+    gains=delta.clip(lower=0).ewm(alpha=1/14,adjust=False).mean()
+    losses=(-delta.clip(upper=0)).ewm(alpha=1/14,adjust=False).mean()
+    rsi=100-100/(1+gains.iloc[-1]/losses.iloc[-1]) if losses.iloc[-1]>0 else (100 if gains.iloc[-1]>0 else 50)
+    ema20=c.ewm(span=20,adjust=False).mean().iloc[-1]
+    ema50=c.ewm(span=50,adjust=False).mean().iloc[-1]
+    ema200=c.ewm(span=200,adjust=False).mean().iloc[-1]
+    macd=c.ewm(span=12,adjust=False).mean()-c.ewm(span=26,adjust=False).mean()
+    hist=(macd-macd.ewm(span=9,adjust=False).mean()).iloc[-1]
+    prev=c.shift()
+    tr=pd.concat([df['high']-df['low'],(df['high']-prev).abs(),(df['low']-prev).abs()],axis=1).max(axis=1)
+    atr=tr.ewm(alpha=1/14,adjust=False).mean().iloc[-1]
+    return {'rsi':float(rsi),'ema20':float(ema20),'ema50':float(ema50),'ema200':float(ema200),'macd_hist':float(hist),'atr':float(atr)}
 
 
-def record_signal(signal, message_id, issued_at):
-    return dict(id=signal['key'], symbol=signal['symbol'], side=signal['side'],
-                entry_zone=list(map(float, signal['entry_zone'])),
-                entry=float(signal['entry']), stop=float(signal['stop']),
-                targets=list(map(float, signal['targets'])),
-                issued_at=stamp(issued_at), message_id=str(message_id),
-                activated_at=None, hit_at=[None, None, None], stop_at=None,
-                closed_at=None, status='WAITING', result=None, updates=[])
+def evaluate(symbol, m15, h1, h4):
+    a,b,c=metrics(m15),metrics(h1),metrics(h4)
+    price=float(m15.iloc[-1]['close'])
+    bullish=(price>a['ema20'] and a['ema20']>a['ema50'] and
+             b['ema50']>b['ema200'] and price>b['ema50'] and
+             price>c['ema50'] and b['macd_hist']>0 and
+             52<=b['rsi']<=68 and c['rsi']>=50)
+    bearish=(price<a['ema20'] and a['ema20']<a['ema50'] and
+             b['ema50']<b['ema200'] and price<b['ema50'] and
+             price<c['ema50'] and b['macd_hist']<0 and
+             32<=b['rsi']<=48 and c['rsi']<=50)
+    if not (bullish or bearish): return None
+    side='BULLISH' if bullish else 'BEARISH'; sign=1 if bullish else -1
+    atr=a['atr']
+    if atr<=0:return None
+    # Entry watch zone anchored to completed 15m close; no implied guaranteed fill.
+    entry=price
+    stop=entry-sign*1.5*atr
+    risk=abs(entry-stop)
+    if not (0.001<=risk/entry<=0.035):return None
+    targets=[entry+sign*risk*r for r in (1,2,3)]
+    zone=[entry-sign*0.15*atr,entry]
+    zone=sorted(zone)
+    # Signal ID identifies the same directional setup within its 1H candle.
+    bar=h1.iloc[-1]['close_time'].isoformat()
+    key=hashlib.sha256(f'{symbol}|{side}|{bar}'.encode()).hexdigest()[:24]
+    return {'symbol':symbol,'side':side,'price':price,'entry':entry,'entry_zone':zone,'stop':stop,
+            'targets':targets,'risk':risk,'m15':a,'h1':b,'h4':c,'bar':bar,'key':key,
+            'at':m15.iloc[-1]['close_time'].to_pydatetime()}
 
 
-def advance(record, bars, now):
-    """Process only completed bars after publication; ambiguous bars favor stop."""
-    events = []
-    if record['closed_at']:
-        return events
-    issued = dtparse(record['issued_at'])
-    last_seen = dtparse(record.get('last_checked_at') or record['issued_at'])
-    cutoff = issued + timedelta(hours=ENTRY_EXPIRY_HOURS)
-    active_cutoff = issued + timedelta(hours=ACTIVE_EXPIRY_HOURS)
-    bullish = record['side'] == 'BULLISH'
-    for bar in bars.itertuples():
-        end = bar.close_time.to_pydatetime()
-        if end <= last_seen or end <= issued or end > now:
-            continue
-        low, high = float(bar.low), float(bar.high)
-        if record['activated_at'] is None and end > cutoff:
-            record.update(status='EXPIRED', closed_at=stamp(cutoff))
-            events.append('EXPIRED: entry not confirmed within 24 hours')
-            break
-        if record['activated_at'] is None:
-            zone_lo, zone_hi = record['entry_zone']
-            if not (low <= zone_hi and high >= zone_lo):
-                record['last_checked_at'] = stamp(end)
+def fmt(x):
+    return f'${x:,.2f}' if abs(x)>=10 else f'${x:,.5f}'.rstrip('0').rstrip('.')
+
+
+def message(s):
+    t=s['at'].astimezone(PT)
+    a,b,c=s['m15'],s['h1'],s['h4']
+    side='🟢 BULLISH' if s['side']=='BULLISH' else '🔴 BEARISH'
+    lines=[f'📣 **Santiago Academy: Premium Signal** 📣',
+           f'**${s["symbol"]}/USD — {side}**',
+           f'**Data:** Binance.US {s["symbol"]}USD, completed 15m / 1H / 4H candles',
+           f'**Reference:** {fmt(s["price"])} | {t:%b %d, %Y %I:%M %p} Pacific (15m close)',
+           '**The next expected move ✍️**',
+           f'**Entry watch zone:** {fmt(s["entry_zone"][0])} – {fmt(s["entry_zone"][1])}',
+           f'**🛑 Stop loss:** {fmt(s["stop"])}',
+           f'**🎯 TP1:** {fmt(s["targets"][0])} | **R:R 1:1**',
+           f'**🎯 TP2:** {fmt(s["targets"][1])} | **R:R 1:2**',
+           f'**🎯 TP3:** {fmt(s["targets"][2])} | **R:R 1:3**',
+           f'**1H:** RSI {b["rsi"]:.1f} | EMA50 {fmt(b["ema50"])} | EMA200 {fmt(b["ema200"])} | MACD hist {b["macd_hist"]:+.5f}',
+           f'**4H:** RSI {c["rsi"]:.1f} | EMA50 {fmt(c["ema50"])} | ATR {fmt(c["atr"])}',
+           f'**15m:** EMA20 {fmt(a["ema20"])} | EMA50 {fmt(a["ema50"])} | ATR {fmt(a["atr"])}',
+           f'**Reasoning:** Confirmed {s["side"].lower()} EMA structure on 15m/1H, 4H trend agreement, 1H MACD momentum and RSI filter.',
+           f'**Invalidation:** Price reaching {fmt(s["stop"])} or trend/momentum conditions reversing before entry.',
+           '⚠️ **Disclaimer:** Educational analysis only; not financial advice. No guaranteed fills or profits. Crypto trading can cause total loss.']
+    return '\n'.join(lines)
+
+
+def chart(s, m15):
+    df=m15.tail(64).reset_index(drop=True)
+    fig,ax=plt.subplots(figsize=(11,5.5),dpi=135)
+    for i,r in df.iterrows():
+        up=r['close']>=r['open']
+        color='#18a37e' if up else '#d75c61'
+        ax.vlines(i,r['low'],r['high'],color=color,linewidth=1)
+        ax.add_patch(plt.Rectangle((i-.30,min(r['open'],r['close'])),.60,max(abs(r['close']-r['open']),s['price']*.000002),facecolor=color,edgecolor=color))
+    for val,label,color in [(s['entry'],'ENTRY','#3279d1'),(s['stop'],'STOP','#dc5050'),
+                            *[(v,f'TP{i}','#1a9a60') for i,v in enumerate(s['targets'],1)]]:
+        ax.axhline(val,color=color,linestyle='--',alpha=.75,linewidth=1)
+        ax.text(len(df)+.5,val,f'{label} {fmt(val)}',color=color,fontsize=8,va='center')
+    ax.set_xlim(-1,len(df)+18)
+    ax.set_title(f'Santiago Academy | {s["symbol"]}/USD {s["side"]} | Binance.US 15m candles')
+    ax.set_ylabel('USD');ax.grid(alpha=.13)
+    ax.set_xlabel('Historical completed candles (15m) →')
+    fig.tight_layout()
+    buf=io.BytesIO();fig.savefig(buf,format='png',bbox_inches='tight');plt.close(fig)
+    buf.seek(0);return buf
+
+
+def load_state():
+    if not STATE_PATH.exists():return {'sent':{}}
+    try:
+        data=json.loads(STATE_PATH.read_text())
+        if not isinstance(data.get('sent'),dict):raise ValueError('bad state')
+        return data
+    except (ValueError,OSError) as exc:
+        raise RuntimeError('Invalid duplicate state; refusing to post until fixed') from exc
+
+
+def save_state(state):
+    STATE_PATH.parent.mkdir(parents=True,exist_ok=True)
+    temp=STATE_PATH.with_suffix('.tmp')
+    temp.write_text(json.dumps(state,indent=2,sort_keys=True))
+    temp.replace(STATE_PATH)
+
+
+def post(s, png, webhook, role_ids):
+    content=message(s)
+    if role_ids:
+        content=' '.join(f'<@&{role}>' for role in role_ids)+'\n'+content
+    if len(content)>2000:raise ValueError('Discord content exceeds 2000 characters')
+    # Wait=true requires Discord to return a message ID, not just a successful HTTP code.
+    for attempt in range(3):
+        png.seek(0)
+        try:
+            response=SESSION.post(webhook,params={'wait':'true'},
+                data={'payload_json':json.dumps({'content':content,'allowed_mentions':{'parse':[],'roles':role_ids}})},
+                files={'files[0]':(f'{s["symbol"]}_signal.png',png,'image/png')},timeout=40)
+            if response.status_code==429:
+                delay=min(float(response.json().get('retry_after',2)),30)
+                time.sleep(delay);continue
+            response.raise_for_status()
+            body=response.json()
+            if not body.get('id'):raise RuntimeError('Discord did not return message ID')
+            return body['id']
+        except requests.RequestException:
+            if attempt==2:raise
+            time.sleep(2**attempt)
+    raise RuntimeError('Discord rate limited after retries')
+
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--dry-run',action='store_true',help='Evaluate and print results; never post')
+    parser.add_argument('--test-discord',action='store_true',help='Post a clearly marked connectivity test, no trade signal')
+    args=parser.parse_args()
+    webhook=os.environ.get('DISCORD_WEBHOOK_URL','').strip()
+    if not args.dry_run and not webhook:raise RuntimeError('Missing DISCORD_WEBHOOK_URL')
+    if args.test_discord:
+        response=SESSION.post(webhook,params={'wait':'true'},json={
+            'content':'🧪 Santiago Academy multi-crypto connection test — no trade signal.',
+            'allowed_mentions':{'parse':[]}},timeout=25)
+        response.raise_for_status()
+        if not response.json().get('id'):raise RuntimeError('Discord test did not return message ID')
+        print('DISCORD_TEST_SENT');return
+    state=load_state()
+    state.setdefault('signals', {})
+    state.setdefault('reports', {})
+    # Purge state only after 72h; duplicates within a 1H candle stay suppressed.
+    now=datetime.now(timezone.utc).timestamp()
+    state['sent']={k:v for k,v in state['sent'].items() if isinstance(v,(int,float)) and now-v<72*3600}
+    role_ids=[x.strip() for x in os.environ.get('SA_DISCORD_ROLE_IDS','').split(',') if x.strip()]
+    if any(not x.isdigit() for x in role_ids):raise ValueError('Role IDs must be numeric')
+    # Update prior Discord signals before scanning for new setups.
+    if not args.dry_run:
+        for signal_id, tracked in list(state['signals'].items()):
+            if tracked.get('closed_at'):
                 continue
-            record.update(activated_at=stamp(end), status='ACTIVE')
-            events.append('ENTRY ACTIVATED (15m candle touched entry zone)')
-        stop_hit = low <= record['stop'] if bullish else high >= record['stop']
-        target_hits = [high >= x if bullish else low <= x for x in record['targets']]
-        # For an ambiguous candle, assume the stop was reached before any new target.
-        if stop_hit:
-            record['stop_at'] = stamp(end)
-            if record['hit_at'][0] is None:
-                record.update(result='LOSS', status='CLOSED', closed_at=stamp(end))
-                events.append('LOSS: stop reached before TP1 (or order ambiguous)')
-            else:
-                record.update(status='CLOSED', closed_at=stamp(end))
-                events.append('CLOSED: stop reached after TP1 WIN')
-            record['last_checked_at'] = stamp(end)
-            break
-        for i, touched in enumerate(target_hits):
-            if touched and record['hit_at'][i] is None:
-                # TP2/3 implies the lower numbered targets were crossed.
-                for j in range(i + 1):
-                    if record['hit_at'][j] is None:
-                        record['hit_at'][j] = stamp(end)
-                        if j == 0:
-                            record['result'] = 'WIN'
-                        events.append(f'TP{j+1} HIT' + (' — WIN' if j == 0 else ''))
-        record['last_checked_at'] = stamp(end)
-        if record['hit_at'][2]:
-            record.update(status='CLOSED', closed_at=stamp(end))
-            events.append('CLOSED: TP3 reached')
-            break
-    if record['closed_at'] is None:
-        if record['activated_at'] is None and now >= cutoff:
-            record.update(status='EXPIRED', closed_at=stamp(cutoff))
-            events.append('EXPIRED: entry not confirmed within 24 hours')
-        elif record['activated_at'] is not None and now >= active_cutoff:
-            record.update(status='CLOSED', closed_at=stamp(active_cutoff))
-            if record['result'] is None:
-                record['result'] = 'UNRESOLVED'
-            events.append('CLOSED: 72-hour tracking limit reached')
-    return events
+            try:
+                history=candles(tracked['symbol'],'15m',limit=500)
+                events=tracking.advance(tracked,history,datetime.now(timezone.utc))
+                for event in events:
+                    # Save after each acknowledged message to reduce duplicate risk.
+                    text=(f'📈 **Santiago Academy | Signal Update**\n'
+                          f'**${tracked["symbol"]}/USD — {tracked["side"]}**\n'
+                          f'**Event:** {event}\n'
+                          f'**Result:** {tracked["result"] or "PENDING"}\n'
+                          f'**Original Discord message:** {tracked["message_id"]}\n'
+                          'Educational price-level tracking; not verified trade execution.')
+                    tracking.send_text(SESSION,webhook,text)
+                    save_state(state)
+                save_state(state)
+            except Exception as exc:
+                print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
+                raise
+        tracking.daily_and_monthly(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook)
+        save_state(state)
+    count=0
+    for symbol in ASSETS:
+        signal = None
+        try:
+            m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
+            signal=evaluate(symbol,m15,h1,h4)
+            if not signal:
+                print(f'{symbol}: NO TRADE (filters not aligned)',flush=True);continue
+            if signal['key'] in state['sent']:
+                print(f'{symbol}: DUPLICATE SUPPRESSED',flush=True);continue
+            if args.dry_run:
+                print(f'{symbol}: QUALIFIED {signal["side"]}\n{message(signal)}',flush=True)
+                continue
+            image=chart(signal,m15)
+            try:
+                message_id=post(signal,image,webhook,role_ids)
+            except Exception:
+                # Delivery may have occurred without an acknowledgement. Stop this run.
+                raise
+            issued=datetime.now(timezone.utc)
+            state['sent'][signal['key']]=issued.timestamp()
+            state['signals'][signal['key']]=tracking.record_signal(signal,message_id,issued)
+            save_state(state)
+            count+=1
+            print(f'{symbol}: DISCORD_SENT id={message_id}',flush=True)
+        except (requests.RequestException,ValueError,RuntimeError,KeyError,IndexError) as exc:
+            print(f'{symbol}: ERROR {type(exc).__name__}: {exc}',file=sys.stderr,flush=True)
+            # Stop if posting may have succeeded but acknowledgement failed, to avoid duplicate sends.
+            if not args.dry_run and signal is not None:
+                raise  # Never silently continue after a potentially ambiguous send.
+    save_state(state)
+    print(f'SCAN_COMPLETE sent={count} dry_run={args.dry_run}',flush=True)
 
-
-def result_day(record):
-    if record['result'] == 'WIN':
-        return dtparse(record['hit_at'][0]).astimezone(PT).date()
-    if record['result'] == 'LOSS':
-        return dtparse(record['stop_at']).astimezone(PT).date()
-    return None
-
-
-def report(records, start, end, title):
-    wins = losses = 0
-    tp = [0, 0, 0]
-    for record in records.values():
-        day = result_day(record)
-        if day is None or not start <= day < end:
-            continue
-        if record['result'] == 'WIN': wins += 1
-        elif record['result'] == 'LOSS': losses += 1
-        for i, hit in enumerate(record['hit_at']):
-            if hit: tp[i] += 1
-    total = wins + losses
-    pct = f'{100*wins/total:.1f}%' if total else 'N/A (no resolved signals)'
-    return (f'📊 **Santiago Academy | {title}**\n'
-            f'**Period:** {start.isoformat()} through {(end-timedelta(days=1)).isoformat()} Pacific\n'
-            f'🟢 **Wins (TP1 reached):** {wins}\n'
-            f'🔴 **Losses (stop before TP1):** {losses}\n'
-            f'**Win rate:** {pct}\n'
-            f'**Loss rate:** {f"{100*losses/total:.1f}%" if total else "N/A"}\n'
-            f'🎯 **TP1 / TP2 / TP3:** {tp[0]} / {tp[1]} / {tp[2]}\n'
-            f'**Graded signals:** {total}\n'
-            'Only resolved WIN/LOSS signals are included; no fills or profits are implied. '
-            'Target totals refer to signals graded during this period.')
-
-
-def send_text(session, webhook, content):
-    response = session.post(webhook, params={'wait':'true'}, json={
-        'content': content, 'allowed_mentions': {'parse': []}}, timeout=30)
-    response.raise_for_status()
-    message_id = response.json().get('id')
-    if not message_id:
-        raise RuntimeError('Discord did not acknowledge tracking message')
-    return str(message_id)
-
-
-def daily_and_monthly(records, state, now, session, webhook):
-    """Publish in the first 30 minutes after midnight Pacific, daily then monthly."""
-    local = now.astimezone(PT)
-    if local.hour != 0 or local.minute >= 30:
-        return
-    from datetime import date
-    today = local.date()
-    yesterday = today - timedelta(days=1)
-    reports = state.setdefault('reports', {})
-    key = f'daily:{yesterday.isoformat()}'
-    if key not in reports:
-        reports[key] = send_text(session, webhook,
-            report(records, yesterday, today, f'Daily Signal Results — {yesterday.isoformat()}'))
-    if today.day == 1:
-        first_prev = (today - timedelta(days=1)).replace(day=1)
-        key = f'monthly:{first_prev:%Y-%m}'
-        if key not in reports:
-            reports[key] = send_text(session, webhook,
-                report(records, first_prev, today, f'Monthly Performance — {first_prev:%B %Y}'))
+if __name__=='__main__':
+    main()
