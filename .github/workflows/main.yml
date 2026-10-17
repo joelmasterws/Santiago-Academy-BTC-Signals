@@ -38,6 +38,7 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SA_DISCORD_ROLE_IDS: ${{ vars.SA_DISCORD_ROLE_IDS }}
           SA_SIGNAL_STATE: signal_state.json
+          SA_GIT_CHECKPOINT: "true"
           MODE: ${{ inputs.mode }}
           EVENT_NAME: ${{ github.event_name }}
           MULTI_CRYPTO_LIVE_ENABLED: ${{ vars.MULTI_CRYPTO_LIVE_ENABLED }}
@@ -50,8 +51,8 @@ jobs:
             test-discord) python -u btc_signal.py --test-discord ;;
             *) python -u btc_signal.py --dry-run ;;
           esac
-      - name: Persist duplicate protection
-        if: success() && (inputs.mode == 'live' || (github.event_name == 'schedule' && vars.MULTI_CRYPTO_LIVE_ENABLED == 'true'))
+      - name: Persist signal history (including after errors)
+        if: always() && (inputs.mode == 'live' || (github.event_name == 'schedule' && vars.MULTI_CRYPTO_LIVE_ENABLED == 'true'))
         run: |
           if [[ ! -f signal_state.json ]]; then exit 0; fi
           git config user.name 'github-actions[bot]'
