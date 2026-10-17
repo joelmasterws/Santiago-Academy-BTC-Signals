@@ -15,6 +15,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+import signal_tracking as tracking
 
 ASSETS = ('BTC','ETH','BNB','XRP','SOL','DOGE','TRX','ADA','LINK','AVAX')
 API = 'https://api.binance.us/api/v3/klines'
@@ -193,11 +194,37 @@ def main():
         if not response.json().get('id'):raise RuntimeError('Discord test did not return message ID')
         print('DISCORD_TEST_SENT');return
     state=load_state()
+    state.setdefault('signals', {})
+    state.setdefault('reports', {})
     # Purge state only after 72h; duplicates within a 1H candle stay suppressed.
     now=datetime.now(timezone.utc).timestamp()
     state['sent']={k:v for k,v in state['sent'].items() if isinstance(v,(int,float)) and now-v<72*3600}
     role_ids=[x.strip() for x in os.environ.get('SA_DISCORD_ROLE_IDS','').split(',') if x.strip()]
     if any(not x.isdigit() for x in role_ids):raise ValueError('Role IDs must be numeric')
+    # Update prior Discord signals before scanning for new setups.
+    if not args.dry_run:
+        for signal_id, tracked in list(state['signals'].items()):
+            if tracked.get('closed_at'):
+                continue
+            try:
+                history=candles(tracked['symbol'],'15m',limit=500)
+                events=tracking.advance(tracked,history,datetime.now(timezone.utc))
+                for event in events:
+                    # Save after each acknowledged message to reduce duplicate risk.
+                    text=(f'📈 **Santiago Academy | Signal Update**\n'
+                          f'**${tracked["symbol"]}/USD — {tracked["side"]}**\n'
+                          f'**Event:** {event}\n'
+                          f'**Result:** {tracked["result"] or "PENDING"}\n'
+                          f'**Original Discord message:** {tracked["message_id"]}\n'
+                          'Educational price-level tracking; not verified trade execution.')
+                    tracking.send_text(SESSION,webhook,text)
+                    save_state(state)
+                save_state(state)
+            except Exception as exc:
+                print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
+                raise
+        tracking.daily_and_monthly(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook)
+        save_state(state)
     count=0
     for symbol in ASSETS:
         signal = None
@@ -217,7 +244,9 @@ def main():
             except Exception:
                 # Delivery may have occurred without an acknowledgement. Stop this run.
                 raise
-            state['sent'][signal['key']]=datetime.now(timezone.utc).timestamp()
+            issued=datetime.now(timezone.utc)
+            state['sent'][signal['key']]=issued.timestamp()
+            state['signals'][signal['key']]=tracking.record_signal(signal,message_id,issued)
             save_state(state)
             count+=1
             print(f'{symbol}: DISCORD_SENT id={message_id}',flush=True)
