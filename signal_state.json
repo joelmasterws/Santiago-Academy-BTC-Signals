@@ -1,9 +1,72 @@
 {
+  "reports": {},
   "sent": {
     "009d7371a280914517c3f20a": 1792195217.543145,
     "404c08fd8a1962894b374d3a": 1792195211.062008,
     "4ac4ca3f29efd64093be71fa": 1792197239.743018,
+    "6567fd1d763a9fd1077189f6": 1792198655.635663,
     "9db1a7db461cafeaacd0b815": 1792197235.552146,
+    "e502284a1bd45099c974e6b5": 1792198656.736764,
     "f1b2265cfb161515ff5dd607": 1792193960.450266
+  },
+  "signals": {
+    "6567fd1d763a9fd1077189f6": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 719.63,
+      "entry_zone": [
+        719.63,
+        719.7033866982428
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "6567fd1d763a9fd1077189f6",
+      "issued_at": "2026-10-17T00:57:35.635663+00:00",
+      "message_id": "1560819029457903699",
+      "result": null,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 720.3638669824275,
+      "stop_at": null,
+      "symbol": "BNB",
+      "targets": [
+        718.8961330175725,
+        718.1622660351451,
+        717.4283990527176
+      ],
+      "updates": []
+    },
+    "e502284a1bd45099c974e6b5": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 1.304,
+      "entry_zone": [
+        1.304,
+        1.304429489672088
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "e502284a1bd45099c974e6b5",
+      "issued_at": "2026-10-17T00:57:36.736764+00:00",
+      "message_id": "1560819034990182530",
+      "result": null,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 1.3082948967208803,
+      "stop_at": null,
+      "symbol": "XRP",
+      "targets": [
+        1.2997051032791198,
+        1.2954102065582396,
+        1.2911153098373593
+      ],
+      "updates": []
+    }
   }
 }
