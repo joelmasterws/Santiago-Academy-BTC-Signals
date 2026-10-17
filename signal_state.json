@@ -423,7 +423,7 @@
       ],
       "id": "292fb10a850b988cb537ac33",
       "issued_at": "2026-10-17T06:06:28.755087+00:00",
-      "last_checked_at": "2026-10-17T19:29:59.999000+00:00",
+      "last_checked_at": "2026-10-17T19:59:59.999000+00:00",
       "message_id": "1560896763173408769",
       "result": null,
       "side": "BEARISH",
@@ -501,7 +501,7 @@
       "updates": []
     },
     "396fec7f71d0e067386fdfc8": {
-      "activated_at": null,
+      "activated_at": "2026-10-17T19:44:59.999000+00:00",
       "closed_at": null,
       "entry": 0.22247,
       "entry_zone": [
@@ -509,17 +509,18 @@
         0.22250065406078137
       ],
       "hit_at": [
-        null,
+        "2026-10-17T19:44:59.999000+00:00",
         null,
         null
       ],
       "id": "396fec7f71d0e067386fdfc8",
       "issued_at": "2026-10-17T10:20:03.555016+00:00",
-      "last_checked_at": "2026-10-17T19:29:59.999000+00:00",
+      "last_checked_at": "2026-10-17T19:59:59.999000+00:00",
       "message_id": "1560960578259001375",
-      "result": null,
+      "result": "WIN",
+      "result_posted": "1561106729738178671",
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 0.22277654060781385,
       "stop_at": null,
       "symbol": "ADA",
