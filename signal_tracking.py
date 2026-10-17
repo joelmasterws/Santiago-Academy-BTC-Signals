@@ -9,6 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import requests
+from discord_delivery import acknowledged_post
 
 PT = ZoneInfo('America/Los_Angeles')
 ENTRY_EXPIRY_HOURS = 24
@@ -174,38 +175,31 @@ def report_image(records, start, end, kind, logo_path='santiago_academy_logo.png
 
 
 def send_image(session, webhook, content, png, filename):
-    response=session.post(webhook,params={'wait':'true'},
-        data={'payload_json':__import__('json').dumps({'content':content,'allowed_mentions':{'parse':[]}})},
-        files={'files[0]':(filename,png,'image/png')},timeout=45)
-    response.raise_for_status()
-    mid=response.json().get('id')
-    if not mid:raise RuntimeError('Discord did not acknowledge report image')
-    return str(mid)
+    return acknowledged_post(session, webhook, payload={
+        'content': content, 'allowed_mentions': {'parse': []}},
+        image=png, filename=filename)
 
 
 def send_result(session, webhook, record):
-    win=record['result']=='WIN'
-    color='🟢' if win else '🔴'
-    label='WIN — TP1 HIT' if win else 'LOSS — STOP LOSS HIT BEFORE TP1'
-    target=record['targets'][0] if win else record['stop']
-    content=(f'{color} **SANTIAGO ACADEMY | SIGNAL {"WIN" if win else "LOSS"}** {color}\n'
-             f'**${record["symbol"]}/USD — {record["side"]}**\n'
-             f'**Final grade:** {label}\n'
-             f'**Level reached:** ${target:,.5f}\n'
-             f'**Original Discord message ID:** {record["message_id"]}\n'
-             'TP2/TP3 are monitored internally and included in performance reports. '
-             'Educational candle-based tracking; no fills or profit guaranteed.')
-    r=session.post(webhook,params={'wait':'true'},json={'content':content,
-                    'embeds':[{'color':0x1ccf78 if win else 0xe83c55,
-                               'title':'WIN' if win else 'LOSS', 'description':label}],
-                    'allowed_mentions':{'parse':[]}},timeout=30)
-    r.raise_for_status()
-    mid=r.json().get('id')
-    if not mid:raise RuntimeError('Discord did not acknowledge result')
-    return str(mid)
+    win = record['result'] == 'WIN'
+    color = '🟢' if win else '🔴'
+    label = 'WIN — TP1 HIT' if win else 'LOSS — STOP LOSS HIT BEFORE TP1'
+    target = record['targets'][0] if win else record['stop']
+    content = (f'{color} **SANTIAGO ACADEMY | SIGNAL {"WIN" if win else "LOSS"}** {color}\n'
+               f'**${record["symbol"]}/USD — {record["side"]}**\n'
+               f'**Final grade:** {label}\n'
+               f'**Level reached:** ${target:,.5f}\n'
+               f'**Original Discord message ID:** {record["message_id"]}\n'
+               'TP2/TP3 are monitored internally and included in performance reports. '
+               'Educational candle-based tracking; no fills or profit guaranteed.')
+    return acknowledged_post(session, webhook, json_body={
+        'content': content,
+        'embeds': [{'color': 0x1ccf78 if win else 0xe83c55,
+                    'title': 'WIN' if win else 'LOSS', 'description': label}],
+        'allowed_mentions': {'parse': []}})
 
 
-def due_reports(records,state,now,session,webhook,logo_path='santiago_academy_logo.png'):
+def due_reports(records,state,now,session,webhook,logo_path='santiago_academy_logo.png',checkpoint=None):
     """First run after Pacific midnight, daily first then monthly; retry missed reports."""
     today=now.astimezone(PT).date()
     reports=state.setdefault('reports',{})
@@ -222,6 +216,7 @@ def due_reports(records,state,now,session,webhook,logo_path='santiago_academy_lo
             reports[key]=send_image(session,webhook,f'📊 Santiago Academy Daily Signal Results — {day}',img,
                                     f'Santiago_Academy_Daily_{day}.png')
             emitted.append(key)
+            if checkpoint: checkpoint()
         if next_day.day==1:
             month_start=day.replace(day=1)
             key=f'monthly:{month_start:%Y-%m}'
@@ -230,5 +225,6 @@ def due_reports(records,state,now,session,webhook,logo_path='santiago_academy_lo
                 reports[key]=send_image(session,webhook,f'🏆 Santiago Academy Monthly Performance — {month_start:%B %Y}',img,
                                         f'Santiago_Academy_Monthly_{month_start:%Y-%m}.png')
                 emitted.append(key)
+            if checkpoint: checkpoint()
         day=next_day
     return emitted
