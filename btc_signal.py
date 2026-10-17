@@ -61,11 +61,17 @@ def metrics(df):
 def evaluate(symbol, m15, h1, h4):
     a,b,c=metrics(m15),metrics(h1),metrics(h4)
     price=float(m15.iloc[-1]['close'])
-    bullish=(price>a['ema20'] and a['ema20']>a['ema50'] and
+    volume_ratio=float(m15['volume'].iloc[-1]/m15['volume'].tail(21).iloc[:-1].mean())
+    # Higher selectivity, not a guaranteed win-rate target.
+    bullish=(volume_ratio>=1.15 and 54<=a['rsi']<=70 and
+             c['ema50']>c['ema200'] and c['macd_hist']>0 and
+             price>a['ema20'] and a['ema20']>a['ema50'] and
              b['ema50']>b['ema200'] and price>b['ema50'] and
              price>c['ema50'] and b['macd_hist']>0 and
              52<=b['rsi']<=68 and c['rsi']>=50)
-    bearish=(price<a['ema20'] and a['ema20']<a['ema50'] and
+    bearish=(volume_ratio>=1.15 and 30<=a['rsi']<=46 and
+             c['ema50']<c['ema200'] and c['macd_hist']<0 and
+             price<a['ema20'] and a['ema20']<a['ema50'] and
              b['ema50']<b['ema200'] and price<b['ema50'] and
              price<c['ema50'] and b['macd_hist']<0 and
              32<=b['rsi']<=48 and c['rsi']<=50)
@@ -86,7 +92,7 @@ def evaluate(symbol, m15, h1, h4):
     key=hashlib.sha256(f'{symbol}|{side}|{bar}'.encode()).hexdigest()[:24]
     return {'symbol':symbol,'side':side,'price':price,'entry':entry,'entry_zone':zone,'stop':stop,
             'targets':targets,'risk':risk,'m15':a,'h1':b,'h4':c,'bar':bar,'key':key,
-            'at':m15.iloc[-1]['close_time'].to_pydatetime()}
+            'at':m15.iloc[-1]['close_time'].to_pydatetime(),'volume_ratio':volume_ratio}
 
 
 def fmt(x):
@@ -110,7 +116,7 @@ def message(s):
            f'**1H:** RSI {b["rsi"]:.1f} | EMA50 {fmt(b["ema50"])} | EMA200 {fmt(b["ema200"])} | MACD hist {b["macd_hist"]:+.5f}',
            f'**4H:** RSI {c["rsi"]:.1f} | EMA50 {fmt(c["ema50"])} | ATR {fmt(c["atr"])}',
            f'**15m:** EMA20 {fmt(a["ema20"])} | EMA50 {fmt(a["ema50"])} | ATR {fmt(a["atr"])}',
-           f'**Reasoning:** Confirmed {s["side"].lower()} EMA structure on 15m/1H, 4H trend agreement, 1H MACD momentum and RSI filter.',
+           f'**Reasoning:** Strict 15m/1H/4H EMA and MACD alignment, RSI confirmation, and 15m volume {s["volume_ratio"]:.2f}x the previous 20-candle average.',
            f'**Invalidation:** Price reaching {fmt(s["stop"])} or trend/momentum conditions reversing before entry.',
            '⚠️ **Disclaimer:** Educational analysis only; not financial advice. No guaranteed fills or profits. Crypto trading can cause total loss.']
     return '\n'.join(lines)
@@ -201,29 +207,25 @@ def main():
     state['sent']={k:v for k,v in state['sent'].items() if isinstance(v,(int,float)) and now-v<72*3600}
     role_ids=[x.strip() for x in os.environ.get('SA_DISCORD_ROLE_IDS','').split(',') if x.strip()]
     if any(not x.isdigit() for x in role_ids):raise ValueError('Role IDs must be numeric')
-    # Update prior Discord signals before scanning for new setups.
+    # Evaluate prior signals silently; only final WIN or LOSS notifications are posted.
     if not args.dry_run:
         for signal_id, tracked in list(state['signals'].items()):
-            if tracked.get('closed_at'):
+            if tracked.get('closed_at') and (tracked.get('result') not in ('WIN','LOSS') or tracked.get('result_posted')):
                 continue
             try:
                 history=candles(tracked['symbol'],'15m',limit=500)
                 events=tracking.advance(tracked,history,datetime.now(timezone.utc))
-                for event in events:
-                    # Save after each acknowledged message to reduce duplicate risk.
-                    text=(f'📈 **Santiago Academy | Signal Update**\n'
-                          f'**${tracked["symbol"]}/USD — {tracked["side"]}**\n'
-                          f'**Event:** {event}\n'
-                          f'**Result:** {tracked["result"] or "PENDING"}\n'
-                          f'**Original Discord message:** {tracked["message_id"]}\n'
-                          'Educational price-level tracking; not verified trade execution.')
-                    tracking.send_text(SESSION,webhook,text)
-                    save_state(state)
+                # A WIN is final for grading at TP1, even though TP2/TP3 continue tracking.
+                if tracked.get('result') in ('WIN','LOSS') and not tracked.get('result_posted'):
+                    mid=tracking.send_result(SESSION,webhook,tracked)
+                    tracked['result_posted']=mid
+                    print(f'{tracked["symbol"]}: FINAL_RESULT {tracked["result"]} message={mid}',flush=True)
                 save_state(state)
             except Exception as exc:
                 print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
                 raise
-        tracking.daily_and_monthly(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook)
+        reports=tracking.due_reports(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook)
+        if reports: print('REPORT_IMAGES_POSTED '+','.join(reports),flush=True)
         save_state(state)
     count=0
     for symbol in ASSETS:
