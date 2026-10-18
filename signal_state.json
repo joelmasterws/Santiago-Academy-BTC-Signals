@@ -52,6 +52,7 @@
     "b80e5bae9117c8ba6c26aaf9": 1792222113.189168,
     "b96184391517a210e5ca4c40": 1792213697.059531,
     "bcd25b5b19f7f31801ffcc6c": 1792239735.020397,
+    "bf2b4d0bf54b5fdaed44000a": 1792345825.528899,
     "c1be155348f51b0beacd9540": 1792203053.878031,
     "c5c9a2b104404de82ade99d2": 1792342492.567167,
     "ce8faf484cbf55f4ec810bba": 1792217186.752059,
@@ -149,7 +150,7 @@
       ],
       "id": "07fc2ffacd0419c7c04eb39d",
       "issued_at": "2026-10-18T16:20:49.725223+00:00",
-      "last_checked_at": "2026-10-18T17:14:59.999000+00:00",
+      "last_checked_at": "2026-10-18T17:44:59.999000+00:00",
       "message_id": "1561413756473581650",
       "result": null,
       "result_posted": false,
@@ -704,7 +705,7 @@
       ],
       "id": "44fe6cc9b4f3700135242746",
       "issued_at": "2026-10-18T16:20:53.140066+00:00",
-      "last_checked_at": "2026-10-18T17:14:59.999000+00:00",
+      "last_checked_at": "2026-10-18T17:44:59.999000+00:00",
       "message_id": "1561413772134981732",
       "result": null,
       "result_posted": false,
@@ -1040,7 +1041,7 @@
       ],
       "id": "8579a407de0fdf4f9dcac0a3",
       "issued_at": "2026-10-17T21:52:24.847889+00:00",
-      "last_checked_at": "2026-10-18T17:14:59.999000+00:00",
+      "last_checked_at": "2026-10-18T17:44:59.999000+00:00",
       "message_id": "1561134815527444573",
       "result": null,
       "result_posted": false,
@@ -1425,6 +1426,36 @@
       ],
       "updates": []
     },
+    "bf2b4d0bf54b5fdaed44000a": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 0.21553,
+      "entry_zone": [
+        0.21553,
+        0.2156203912235401
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "bf2b4d0bf54b5fdaed44000a",
+      "issued_at": "2026-10-18T17:50:25.528899+00:00",
+      "last_checked_at": null,
+      "message_id": "1561436304552493128",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 0.21643391223540095,
+      "stop_at": null,
+      "symbol": "ADA",
+      "targets": [
+        0.21462608776459904,
+        0.2137221755291981,
+        0.21281826329379713
+      ]
+    },
     "c1be155348f51b0beacd9540": {
       "activated_at": "2026-10-17T02:29:59.999000+00:00",
       "closed_at": "2026-10-17T03:29:59.999000+00:00",
@@ -1457,7 +1488,7 @@
       "updates": []
     },
     "c5c9a2b104404de82ade99d2": {
-      "activated_at": null,
+      "activated_at": "2026-10-18T17:44:59.999000+00:00",
       "closed_at": null,
       "entry": 101.94,
       "entry_zone": [
@@ -1471,12 +1502,12 @@
       ],
       "id": "c5c9a2b104404de82ade99d2",
       "issued_at": "2026-10-18T16:54:52.567167+00:00",
-      "last_checked_at": "2026-10-18T17:14:59.999000+00:00",
+      "last_checked_at": "2026-10-18T17:44:59.999000+00:00",
       "message_id": "1561422325910470726",
       "result": null,
       "result_posted": false,
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 102.32346867235718,
       "stop_at": null,
       "symbol": "SOL",
