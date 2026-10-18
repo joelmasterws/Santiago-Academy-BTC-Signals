@@ -1305,7 +1305,7 @@
       "updates": []
     },
     "aa3d924af006e2585abc9707": {
-      "activated_at": null,
+      "activated_at": "2026-10-18T21:59:59.999000+00:00",
       "closed_at": null,
       "entry": 1.2713,
       "entry_zone": [
@@ -1319,12 +1319,12 @@
       ],
       "id": "aa3d924af006e2585abc9707",
       "issued_at": "2026-10-18T18:56:39.774009+00:00",
-      "last_checked_at": "2026-10-18T21:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T21:59:59.999000+00:00",
       "message_id": "1561452974847434813",
       "result": null,
       "result_posted": false,
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 1.2748135283334332,
       "stop_at": null,
       "symbol": "XRP",
