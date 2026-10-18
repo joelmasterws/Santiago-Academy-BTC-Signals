@@ -53,6 +53,7 @@
     "b96184391517a210e5ca4c40": 1792213697.059531,
     "bcd25b5b19f7f31801ffcc6c": 1792239735.020397,
     "c1be155348f51b0beacd9540": 1792203053.878031,
+    "c5c9a2b104404de82ade99d2": 1792342492.567167,
     "ce8faf484cbf55f4ec810bba": 1792217186.752059,
     "d6044b025927195163b73e78": 1792203061.542252,
     "d6261ad1eef1aae0fb0159a2": 1792246775.008484,
@@ -134,7 +135,7 @@
       "updates": []
     },
     "07fc2ffacd0419c7c04eb39d": {
-      "activated_at": null,
+      "activated_at": "2026-10-18T16:44:59.999000+00:00",
       "closed_at": null,
       "entry": 1.2699,
       "entry_zone": [
@@ -148,12 +149,12 @@
       ],
       "id": "07fc2ffacd0419c7c04eb39d",
       "issued_at": "2026-10-18T16:20:49.725223+00:00",
-      "last_checked_at": null,
+      "last_checked_at": "2026-10-18T16:44:59.999000+00:00",
       "message_id": "1561413756473581650",
       "result": null,
       "result_posted": false,
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 1.2757091152292044,
       "stop_at": null,
       "symbol": "XRP",
@@ -703,7 +704,7 @@
       ],
       "id": "44fe6cc9b4f3700135242746",
       "issued_at": "2026-10-18T16:20:53.140066+00:00",
-      "last_checked_at": null,
+      "last_checked_at": "2026-10-18T16:44:59.999000+00:00",
       "message_id": "1561413772134981732",
       "result": null,
       "result_posted": false,
@@ -1039,7 +1040,7 @@
       ],
       "id": "8579a407de0fdf4f9dcac0a3",
       "issued_at": "2026-10-17T21:52:24.847889+00:00",
-      "last_checked_at": "2026-10-18T16:14:59.999000+00:00",
+      "last_checked_at": "2026-10-18T16:44:59.999000+00:00",
       "message_id": "1561134815527444573",
       "result": null,
       "result_posted": false,
@@ -1454,6 +1455,36 @@
         2400.7278938809914
       ],
       "updates": []
+    },
+    "c5c9a2b104404de82ade99d2": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 101.94,
+      "entry_zone": [
+        101.94,
+        101.97834686723571
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "c5c9a2b104404de82ade99d2",
+      "issued_at": "2026-10-18T16:54:52.567167+00:00",
+      "last_checked_at": null,
+      "message_id": "1561422325910470726",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 102.32346867235718,
+      "stop_at": null,
+      "symbol": "SOL",
+      "targets": [
+        101.55653132764282,
+        101.17306265528563,
+        100.78959398292845
+      ]
     },
     "ce8faf484cbf55f4ec810bba": {
       "activated_at": "2026-10-17T09:29:59.999000+00:00",
