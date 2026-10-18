@@ -40,6 +40,7 @@
     "8344c9ae1e975b0b11d2b10a": 1792257497.071861,
     "8579a407de0fdf4f9dcac0a3": 1792273944.847889,
     "8bf04a177b13943d4f6dad3b": 1792225237.425993,
+    "95da311f02e30f4df9247f62": 1792358284.172033,
     "9bf2faef6944e2374c2d628a": 1792206545.776752,
     "9db1a7db461cafeaacd0b815": 1792197235.552146,
     "9dd3278fd98d3cbd360e67cf": 1792206547.266469,
@@ -151,7 +152,7 @@
       ],
       "id": "07fc2ffacd0419c7c04eb39d",
       "issued_at": "2026-10-18T16:20:49.725223+00:00",
-      "last_checked_at": "2026-10-18T20:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T21:14:59.999000+00:00",
       "message_id": "1561413756473581650",
       "result": "WIN",
       "result_posted": "1561469046912712786",
@@ -706,7 +707,7 @@
       ],
       "id": "44fe6cc9b4f3700135242746",
       "issued_at": "2026-10-18T16:20:53.140066+00:00",
-      "last_checked_at": "2026-10-18T20:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T21:14:59.999000+00:00",
       "message_id": "1561413772134981732",
       "result": null,
       "result_posted": false,
@@ -1042,7 +1043,7 @@
       ],
       "id": "8579a407de0fdf4f9dcac0a3",
       "issued_at": "2026-10-17T21:52:24.847889+00:00",
-      "last_checked_at": "2026-10-18T20:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T21:14:59.999000+00:00",
       "message_id": "1561134815527444573",
       "result": null,
       "result_posted": false,
@@ -1087,6 +1088,36 @@
         0.22257474076041603
       ],
       "updates": []
+    },
+    "95da311f02e30f4df9247f62": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 80957.03,
+      "entry_zone": [
+        80957.03,
+        80975.80668301728
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "95da311f02e30f4df9247f62",
+      "issued_at": "2026-10-18T21:18:04.172033+00:00",
+      "last_checked_at": null,
+      "message_id": "1561488560102580224",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 81144.79683017284,
+      "stop_at": null,
+      "symbol": "BTC",
+      "targets": [
+        80769.26316982716,
+        80581.49633965432,
+        80393.72950948148
+      ]
     },
     "9bf2faef6944e2374c2d628a": {
       "activated_at": null,
@@ -1288,7 +1319,7 @@
       ],
       "id": "aa3d924af006e2585abc9707",
       "issued_at": "2026-10-18T18:56:39.774009+00:00",
-      "last_checked_at": "2026-10-18T20:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T21:14:59.999000+00:00",
       "message_id": "1561452974847434813",
       "result": null,
       "result_posted": false,
