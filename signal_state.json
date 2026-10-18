@@ -7,6 +7,7 @@
     "0007ca6ab7f3aead0c75488b": 1792203052.172899,
     "009d7371a280914517c3f20a": 1792195217.543145,
     "060a4dc10507be7783da6a58": 1792199810.130241,
+    "07fc2ffacd0419c7c04eb39d": 1792340449.725223,
     "0940810485c94ebd82e0cb3e": 1792213702.675382,
     "0d74d7dd48dd99131e1d756b": 1792199803.604003,
     "0e31aa1fc4ec606f0bcbf568": 1792203055.438899,
@@ -130,6 +131,36 @@
         12.239331565431097
       ],
       "updates": []
+    },
+    "07fc2ffacd0419c7c04eb39d": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 1.2699,
+      "entry_zone": [
+        1.2699,
+        1.2704809115229205
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "07fc2ffacd0419c7c04eb39d",
+      "issued_at": "2026-10-18T16:20:49.725223+00:00",
+      "last_checked_at": null,
+      "message_id": "1561413756473581650",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 1.2757091152292044,
+      "stop_at": null,
+      "symbol": "XRP",
+      "targets": [
+        1.2640908847707957,
+        1.2582817695415913,
+        1.252472654312387
+      ]
     },
     "0940810485c94ebd82e0cb3e": {
       "activated_at": "2026-10-17T05:14:59.999000+00:00",
@@ -977,7 +1008,7 @@
       ],
       "id": "8579a407de0fdf4f9dcac0a3",
       "issued_at": "2026-10-17T21:52:24.847889+00:00",
-      "last_checked_at": "2026-10-18T15:44:59.999000+00:00",
+      "last_checked_at": "2026-10-18T16:14:59.999000+00:00",
       "message_id": "1561134815527444573",
       "result": null,
       "result_posted": false,
