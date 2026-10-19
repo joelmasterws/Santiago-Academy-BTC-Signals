@@ -694,8 +694,8 @@
       "updates": []
     },
     "44fe6cc9b4f3700135242746": {
-      "activated_at": null,
-      "closed_at": null,
+      "activated_at": "2026-10-19T14:14:59.999000+00:00",
+      "closed_at": "2026-10-19T14:14:59.999000+00:00",
       "entry": 0.2159,
       "entry_zone": [
         0.2159,
@@ -708,14 +708,14 @@
       ],
       "id": "44fe6cc9b4f3700135242746",
       "issued_at": "2026-10-18T16:20:53.140066+00:00",
-      "last_checked_at": "2026-10-19T13:29:59.999000+00:00",
+      "last_checked_at": "2026-10-19T14:14:59.999000+00:00",
       "message_id": "1561413772134981732",
-      "result": null,
-      "result_posted": false,
+      "result": "LOSS",
+      "result_posted": "1561746502877978728",
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "CLOSED",
       "stop": 0.2169563541190023,
-      "stop_at": null,
+      "stop_at": "2026-10-19T14:14:59.999000+00:00",
       "symbol": "ADA",
       "targets": [
         0.21484364588099772,
