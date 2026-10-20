@@ -9,7 +9,6 @@
     "07fc2ffacd0419c7c04eb39d": 1792340449.725223,
     "16a919e75ea77aee4243af6a": 1792246773.893488,
     "39dfb8bf37cd118bf6124582": 1792250332.265987,
-    "4281c460757ff8f0aaed5ceb": 1792243772.037981,
     "44fe6cc9b4f3700135242746": 1792340453.140066,
     "5bcd9715615f4c08441f31e8": 1792502637.110784,
     "774fe15949f558ade8575c3b": 1792250328.790273,
@@ -707,8 +706,8 @@
       "updates": []
     },
     "5bcd9715615f4c08441f31e8": {
-      "activated_at": null,
-      "closed_at": null,
+      "activated_at": "2026-10-20T13:44:59.999000+00:00",
+      "closed_at": "2026-10-20T13:44:59.999000+00:00",
       "entry": 81384.2,
       "entry_zone": [
         81384.2,
@@ -721,14 +720,14 @@
       ],
       "id": "5bcd9715615f4c08441f31e8",
       "issued_at": "2026-10-20T13:23:57.110784+00:00",
-      "last_checked_at": null,
+      "last_checked_at": "2026-10-20T13:44:59.999000+00:00",
       "message_id": "1562094019880681483",
-      "result": null,
-      "result_posted": false,
+      "result": "LOSS",
+      "result_posted": "1562105165501308970",
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "CLOSED",
       "stop": 81609.72299596829,
-      "stop_at": null,
+      "stop_at": "2026-10-20T13:44:59.999000+00:00",
       "symbol": "BTC",
       "targets": [
         81158.6770040317,
