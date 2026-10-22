@@ -121,12 +121,7 @@ def metrics(df):
 def evaluate(symbol, m15, h1, h4):
     a,b,c=metrics(m15),metrics(h1),metrics(h4)
     price=float(m15.iloc[-1]['close'])
-    prior_volume=m15['volume'].tail(21).iloc[:-1]
-    avg_volume=float(prior_volume.mean())
-    latest_volume=float(m15['volume'].iloc[-1])
-    if not (pd.notna(avg_volume) and pd.notna(latest_volume)) or avg_volume<=0 or latest_volume<0:
-        return None
-    volume_ratio=latest_volume/avg_volume
+    volume_ratio=float(m15['volume'].iloc[-1]/m15['volume'].tail(21).iloc[:-1].mean())
     # Higher selectivity, not a guaranteed win-rate target.
     bullish=(volume_ratio>=1.15 and 54<=a['rsi']<=70 and
              c['ema50']>c['ema200'] and c['macd_hist']>0 and
@@ -284,7 +279,12 @@ def main():
     # Evaluate prior signals silently; only final WIN or LOSS notifications are posted.
     if not args.dry_run:
         for signal_id, tracked in list(state['signals'].items()):
-            if tracked.get('closed_at') and (tracked.get('result') not in ('WIN','LOSS') or tracked.get('result_posted')):
+            # Closed wins still need processing until optional WIN-only forwarding succeeds.
+            extra_win_webhook = os.environ.get('DISCORD_WINS_WEBHOOK_URL', '').strip()
+            pending_extra_win = (bool(extra_win_webhook) and tracked.get('result') == 'WIN'
+                                 and bool((tracked.get('hit_at') or [None])[0])
+                                 and not tracked.get('win_extra_discord_posted'))
+            if tracked.get('closed_at') and not pending_extra_win and (tracked.get('result') not in ('WIN','LOSS') or tracked.get('result_posted')):
                 continue
             try:
                 history=candles(tracked['symbol'],'15m',limit=500)
@@ -296,6 +296,18 @@ def main():
                     checkpoint(state)
                     print(f'{tracked["symbol"]}: FINAL_RESULT {tracked["result"]} message={mid}',flush=True)
                 save_state(state)
+                # Secondary delivery is isolated: failures cannot prevent primary reporting.
+                if (extra_win_webhook and tracked.get('result') == 'WIN'
+                        and bool((tracked.get('hit_at') or [None])[0])
+                        and not tracked.get('win_extra_discord_posted')):
+                    try:
+                        extra_mid = tracking.send_win_to_extra_discord(SESSION, extra_win_webhook, tracked)
+                        if extra_mid:
+                            tracked['win_extra_discord_posted'] = str(extra_mid)
+                            checkpoint(state)
+                            print(f'{tracked["symbol"]}: WIN_EXTRA_DISCORD_SENT message={extra_mid}', flush=True)
+                    except Exception as secondary_exc:
+                        print(f'WIN_EXTRA_DISCORD_ERROR {signal_id}: {secondary_exc}', file=sys.stderr, flush=True)
             except Exception as exc:
                 print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
                 raise
@@ -309,22 +321,18 @@ def main():
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
-                if symbol == 'BTC':
-                    print('BTC: BINANCE_FILTERS_FAILED', flush=True)
                 print(f'{symbol}: NO TRADE (filters not aligned)',flush=True);continue
             if symbol == 'BTC':
                 try:
                     confirmed = confirm_bitfinex_btc(
                         signal, {'15m': m15, '1h': h1, '4h': h4})
                 except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
-                    print(f'BTC: BITFINEX_DATA_UNAVAILABLE ({type(exc).__name__}: {exc})', flush=True)
-                    print('BTC: NO TRADE (Bitfinex confirmation unavailable)', flush=True)
+                    print(f'BTC: NO TRADE (Bitfinex confirmation unavailable: {exc})',
+                          flush=True)
                     continue
                 if not confirmed:
-                    print('BTC: BITFINEX_REJECTED', flush=True)
                     print('BTC: NO TRADE (Binance/Bitfinex disagree)', flush=True)
                     continue
-                print('BTC: BITFINEX_CONFIRMED', flush=True)
             if signal['key'] in state['sent']:
                 print(f'{symbol}: DUPLICATE SUPPRESSED',flush=True);continue
             if args.dry_run:
