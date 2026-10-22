@@ -57,9 +57,24 @@ def advance(record, bars, now):
             if not (low <= hi and high >= lo):
                 record['last_checked_at'] = stamp(end)
                 continue
+            # OHLC cannot prove whether entry happened before a stop in this bar.
+            # Do not misrepresent an unverified fill sequence as a definite loss.
+            stop_on_entry_bar = (low <= record['stop'] if bullish
+                                 else high >= record['stop'])
+            if stop_on_entry_bar:
+                record.update(status='AMBIGUOUS', result='AMBIGUOUS',
+                              closed_at=stamp(end), last_checked_at=stamp(end),
+                              ambiguity_reason='ENTRY_AND_STOP_SAME_15M_CANDLE',
+                              ambiguity_at=stamp(end))
+                events.append('AMBIGUOUS')
+                break
             record.update(activated_at=stamp(end), status='ACTIVE')
         stop_hit = low <= record['stop'] if bullish else high >= record['stop']
         target_hits = [high >= x if bullish else low <= x for x in record['targets']]
+        if stop_hit and any(target_hits):
+            record.setdefault('diagnostics', []).append({
+                'at': stamp(end), 'type': 'STOP_AND_TARGET_SAME_15M_CANDLE',
+                'resolution': 'STOP_FIRST_CONSERVATIVE'})
         if stop_hit:
             record['stop_at'] = stamp(end)
             record.update(status='CLOSED', closed_at=stamp(end))
