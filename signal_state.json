@@ -9,6 +9,7 @@
   },
   "sent": {
     "1996944e741c7856bbd2d796": 1792676493.344746,
+    "360782d127cb453d9b7a0e40": 1792676496.934348,
     "3f2dc350d11ccaed969b6e8b": 1792671319.074085,
     "5bcd9715615f4c08441f31e8": 1792502637.110784
   },
@@ -505,6 +506,36 @@
         1.2918739152080223
       ],
       "updates": []
+    },
+    "360782d127cb453d9b7a0e40": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 12.013,
+      "entry_zone": [
+        12.013,
+        12.015459649917728
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "360782d127cb453d9b7a0e40",
+      "issued_at": "2026-10-22T13:41:36.934348+00:00",
+      "last_checked_at": null,
+      "message_id": "1562823241469530265",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 12.037596499177287,
+      "stop_at": null,
+      "symbol": "LINK",
+      "targets": [
+        11.988403500822713,
+        11.963807001645426,
+        11.93921050246814
+      ]
     },
     "396fec7f71d0e067386fdfc8": {
       "activated_at": "2026-10-17T19:44:59.999000+00:00",
