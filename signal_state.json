@@ -12,6 +12,7 @@
     "360782d127cb453d9b7a0e40": 1792676496.934348,
     "3f2dc350d11ccaed969b6e8b": 1792671319.074085,
     "5bcd9715615f4c08441f31e8": 1792502637.110784,
+    "c3cc22386bab85300cd59b58": 1792683990.399934,
     "d44cf570e36ad66e8715ebe6": 1792683986.605623
   },
   "signals": {
@@ -1608,6 +1609,36 @@
         2400.7278938809914
       ],
       "updates": []
+    },
+    "c3cc22386bab85300cd59b58": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 0.0789,
+      "entry_zone": [
+        0.0789,
+        0.07892088054178763
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "c3cc22386bab85300cd59b58",
+      "issued_at": "2026-10-22T15:46:30.399934+00:00",
+      "last_checked_at": null,
+      "message_id": "1562854671415119924",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 0.07910880541787632,
+      "stop_at": null,
+      "symbol": "DOGE",
+      "targets": [
+        0.07869119458212367,
+        0.07848238916424735,
+        0.07827358374637103
+      ]
     },
     "c5c9a2b104404de82ade99d2": {
       "activated_at": "2026-10-18T17:44:59.999000+00:00",
