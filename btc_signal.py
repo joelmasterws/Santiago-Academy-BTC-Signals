@@ -44,6 +44,64 @@ def candles(symbol, interval, limit=260):
     return df
 
 
+
+# Independent BTC confirmation only. Other assets retain their existing rules.
+BITFINEX_API = 'https://api-pub.bitfinex.com/v2/candles/hist'
+
+
+def bitfinex_candles(interval, limit=260):
+    timeframe = {'15m': '15m', '1h': '1h', '4h': '4h'}[interval]
+    resp = SESSION.get(
+        f'{BITFINEX_API}/trade:{timeframe}:tBTCUSD',
+        params={'limit': limit, 'sort': 1}, timeout=25)
+    resp.raise_for_status()
+    rows = resp.json()
+    if not isinstance(rows, list) or len(rows) < 205:
+        raise ValueError(f'Bitfinex BTC {interval}: insufficient candles')
+    # Bitfinex format: [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME].
+    df = pd.DataFrame(rows, columns=['mts', 'open', 'close', 'high', 'low', 'volume'])
+    for name in ('open', 'close', 'high', 'low', 'volume'):
+        df[name] = pd.to_numeric(df[name], errors='raise')
+    start = pd.to_datetime(df['mts'], unit='ms', utc=True)
+    duration = {'15m': pd.Timedelta(minutes=15),
+                '1h': pd.Timedelta(hours=1),
+                '4h': pd.Timedelta(hours=4)}[interval]
+    df['close_time'] = start + duration
+    df = df[df['close_time'] <= pd.Timestamp.now(tz='UTC')].copy()
+    if len(df) < 200:
+        raise ValueError(f'Bitfinex BTC {interval}: insufficient closed candles')
+    if pd.Timestamp.now(tz='UTC') - df.iloc[-1]['close_time'] > pd.Timedelta(
+            minutes={'15m': 45, '1h': 150, '4h': 600}[interval]):
+        raise ValueError(f'Bitfinex BTC {interval}: stale candles')
+    return df
+
+
+def confirm_bitfinex_btc(signal, primary):
+    """Fail closed unless independent BTC trend/momentum corroborate the signal."""
+    frames = {interval: bitfinex_candles(interval)
+              for interval in ('15m', '1h', '4h')}
+    for interval, original in primary.items():
+        delta = abs(frames[interval].iloc[-1]['close_time']
+                    - original.iloc[-1]['close_time'])
+        if delta > {'15m': pd.Timedelta(minutes=15),
+                    '1h': pd.Timedelta(hours=1),
+                    '4h': pd.Timedelta(hours=4)}[interval]:
+            raise ValueError(f'Bitfinex BTC {interval}: candle timestamps not aligned')
+    a, b, c = (metrics(frames[k]) for k in ('15m', '1h', '4h'))
+    bullish = (b['ema50'] > b['ema200'] and c['ema50'] > c['ema200']
+               and b['macd_hist'] > 0 and c['macd_hist'] > 0
+               and a['rsi'] >= 50 and b['rsi'] >= 50)
+    bearish = (b['ema50'] < b['ema200'] and c['ema50'] < c['ema200']
+               and b['macd_hist'] < 0 and c['macd_hist'] < 0
+               and a['rsi'] <= 50 and b['rsi'] <= 50)
+    confirmed = bullish if signal['side'] == 'BULLISH' else bearish
+    if not confirmed:
+        return False
+    signal['bitfinex_confirmation'] = {
+        'rsi_15m': a['rsi'], 'rsi_1h': b['rsi'],
+        'macd_hist_1h': b['macd_hist'], 'macd_hist_4h': c['macd_hist']}
+    return True
+
 def metrics(df):
     c=df['close']; delta=c.diff()
     gains=delta.clip(lower=0).ewm(alpha=1/14,adjust=False).mean()
@@ -247,6 +305,17 @@ def main():
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
                 print(f'{symbol}: NO TRADE (filters not aligned)',flush=True);continue
+            if symbol == 'BTC':
+                try:
+                    confirmed = confirm_bitfinex_btc(
+                        signal, {'15m': m15, '1h': h1, '4h': h4})
+                except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
+                    print(f'BTC: NO TRADE (Bitfinex confirmation unavailable: {exc})',
+                          flush=True)
+                    continue
+                if not confirmed:
+                    print('BTC: NO TRADE (Binance/Bitfinex disagree)', flush=True)
+                    continue
             if signal['key'] in state['sent']:
                 print(f'{symbol}: DUPLICATE SUPPRESSED',flush=True);continue
             if args.dry_run:
