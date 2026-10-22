@@ -214,6 +214,23 @@ def send_result(session, webhook, record):
         'allowed_mentions': {'parse': []}})
 
 
+def send_win_to_extra_discord(session, webhook, record):
+    """Cross-post only confirmed TP1 WIN results; never post LOSS/AMBIGUOUS."""
+    if record.get('result') != 'WIN' or not record.get('hit_at', [None])[0]:
+        return None
+    target = float(record['targets'][0])
+    content = (f'🟢 **SANTIAGO ACADEMY | WINNING SIGNAL** 🟢\n'
+               f'**${record["symbol"]}/USD — {record["side"]}**\n'
+               f'**Verified candle-based result:** TP1 reached at ${target:,.5f}\n'
+               f'**Entry reference:** ${float(record["entry"]):,.5f}\n'
+               f'**Stop reference:** ${float(record["stop"]):,.5f}\n'
+               f'**TP1 observed:** {record["hit_at"][0]}\n'
+               'Educational signal outcome, not a verified fill or realized profit. '
+               'Past results do not guarantee future results.')
+    return acknowledged_post(session, webhook, json_body={
+        'content': content, 'allowed_mentions': {'parse': []}})
+
+
 def due_reports(records,state,now,session,webhook,logo_path='santiago_academy_logo.png',checkpoint=None):
     """First run after Pacific midnight, daily first then monthly; retry missed reports."""
     today=now.astimezone(PT).date()
