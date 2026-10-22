@@ -121,7 +121,12 @@ def metrics(df):
 def evaluate(symbol, m15, h1, h4):
     a,b,c=metrics(m15),metrics(h1),metrics(h4)
     price=float(m15.iloc[-1]['close'])
-    volume_ratio=float(m15['volume'].iloc[-1]/m15['volume'].tail(21).iloc[:-1].mean())
+    prior_volume=m15['volume'].tail(21).iloc[:-1]
+    avg_volume=float(prior_volume.mean())
+    latest_volume=float(m15['volume'].iloc[-1])
+    if not (pd.notna(avg_volume) and pd.notna(latest_volume)) or avg_volume<=0 or latest_volume<0:
+        return None
+    volume_ratio=latest_volume/avg_volume
     # Higher selectivity, not a guaranteed win-rate target.
     bullish=(volume_ratio>=1.15 and 54<=a['rsi']<=70 and
              c['ema50']>c['ema200'] and c['macd_hist']>0 and
@@ -304,18 +309,22 @@ def main():
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
+                if symbol == 'BTC':
+                    print('BTC: BINANCE_FILTERS_FAILED', flush=True)
                 print(f'{symbol}: NO TRADE (filters not aligned)',flush=True);continue
             if symbol == 'BTC':
                 try:
                     confirmed = confirm_bitfinex_btc(
                         signal, {'15m': m15, '1h': h1, '4h': h4})
                 except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
-                    print(f'BTC: NO TRADE (Bitfinex confirmation unavailable: {exc})',
-                          flush=True)
+                    print(f'BTC: BITFINEX_DATA_UNAVAILABLE ({type(exc).__name__}: {exc})', flush=True)
+                    print('BTC: NO TRADE (Bitfinex confirmation unavailable)', flush=True)
                     continue
                 if not confirmed:
+                    print('BTC: BITFINEX_REJECTED', flush=True)
                     print('BTC: NO TRADE (Binance/Bitfinex disagree)', flush=True)
                     continue
+                print('BTC: BITFINEX_CONFIRMED', flush=True)
             if signal['key'] in state['sent']:
                 print(f'{symbol}: DUPLICATE SUPPRESSED',flush=True);continue
             if args.dry_run:
