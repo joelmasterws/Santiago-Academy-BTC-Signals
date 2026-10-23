@@ -1,3 +1,35 @@
+
+name: Santiago Academy Premium Crypto Signals
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run scans only; test-discord sends a test; live posts qualified signals'
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run
+          - test-discord
+          - live
+
+  schedule:
+    - cron: '3,18,33,48 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: santiago-academy-premium-crypto
+  cancel-in-progress: false
+
+jobs:
+  send-signal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
@@ -56,7 +88,10 @@
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          git add signal_state.json public_reports/ 2>/dev/null || git add signal_state.json
+          git add signal_state.json
+          if [[ -d public_reports ]]; then
+            git add public_reports/
+          fi
 
           if git diff --cached --quiet; then
             exit 0
