@@ -19,7 +19,7 @@ def acknowledged_post(session, webhook, *, json_body=None, payload=None, image=N
         if image is not None:
             image.seek(0)
             args['data'] = {'payload_json': json.dumps(payload)}
-            args['files'] = {'files[0]': (filename, image, 'image/png')}
+            args['files'] = {'files[0]': (filename, image, 'application/pdf' if str(filename).lower().endswith('.pdf') else 'image/png')}
         else:
             args['json'] = json_body
         # Do not retry ambiguous connection errors: response may have been delivered.
