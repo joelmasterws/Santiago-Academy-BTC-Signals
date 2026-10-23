@@ -15,6 +15,7 @@
     "4b38afcfa6ebe2433f9c2b05": 1792699405.858577,
     "c3cc22386bab85300cd59b58": 1792683990.399934,
     "d44cf570e36ad66e8715ebe6": 1792683986.605623,
+    "db91518bc12c3f240aa69d7c": 1792781536.635989,
     "e10f0209035a543626dc8e5f": 1792697499.521639
   },
   "signals": {
@@ -1849,6 +1850,36 @@
         0.0793022849437988
       ],
       "updates": []
+    },
+    "db91518bc12c3f240aa69d7c": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 1.309,
+      "entry_zone": [
+        1.309,
+        1.3095640823937895
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "db91518bc12c3f240aa69d7c",
+      "issued_at": "2026-10-23T18:52:16.635989+00:00",
+      "last_checked_at": null,
+      "message_id": "1563263808875663382",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 1.314640823937896,
+      "stop_at": null,
+      "symbol": "XRP",
+      "targets": [
+        1.303359176062104,
+        1.297718352124208,
+        1.292077528186312
+      ]
     },
     "de299d7dae61f7ad4e82879c": {
       "activated_at": "2026-10-17T14:29:59.999000+00:00",
