@@ -15,6 +15,7 @@
     "360782d127cb453d9b7a0e40": 1792676496.934348,
     "3f2dc350d11ccaed969b6e8b": 1792671319.074085,
     "4b38afcfa6ebe2433f9c2b05": 1792699405.858577,
+    "767ec1a793f5b593e3d5d0f5": 1792791816.433456,
     "c3cc22386bab85300cd59b58": 1792683990.399934,
     "d44cf570e36ad66e8715ebe6": 1792683986.605623,
     "db91518bc12c3f240aa69d7c": 1792781536.635989,
@@ -1017,6 +1018,36 @@
       ],
       "updates": []
     },
+    "767ec1a793f5b593e3d5d0f5": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 0.0794,
+      "entry_zone": [
+        0.0794,
+        0.07941806573807969
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "767ec1a793f5b593e3d5d0f5",
+      "issued_at": "2026-10-23T21:43:36.433456+00:00",
+      "last_checked_at": null,
+      "message_id": "1563306926597607535",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 0.0795806573807969,
+      "stop_at": null,
+      "symbol": "DOGE",
+      "targets": [
+        0.0792193426192031,
+        0.07903868523840621,
+        0.07885802785760931
+      ]
+    },
     "774fe15949f558ade8575c3b": {
       "activated_at": null,
       "closed_at": "2026-10-18T15:18:48.790273+00:00",
@@ -1868,7 +1899,7 @@
       ],
       "id": "db91518bc12c3f240aa69d7c",
       "issued_at": "2026-10-23T18:52:16.635989+00:00",
-      "last_checked_at": "2026-10-23T20:59:59.999000+00:00",
+      "last_checked_at": "2026-10-23T21:29:59.999000+00:00",
       "message_id": "1563263808875663382",
       "result": null,
       "result_posted": false,
