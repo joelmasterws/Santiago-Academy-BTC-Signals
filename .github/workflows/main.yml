@@ -1,4 +1,6 @@
+
 name: Santiago Academy Premium Crypto Signals
+
 on:
   workflow_dispatch:
     inputs:
@@ -11,53 +13,83 @@ on:
           - dry-run
           - test-discord
           - live
+
   schedule:
     - cron: '3,18,33,48 * * * *'
+
 permissions:
   contents: write
+
 concurrency:
   group: santiago-academy-premium-crypto
   cancel-in-progress: false
+
 jobs:
   send-signal:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
+
       - name: Scan ten cryptocurrencies and optionally post to test Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WINS_WEBHOOK_URL: ${{ secrets.DISCORD_WINS_WEBHOOK_URL }}
           SA_DISCORD_ROLE_IDS: ${{ vars.SA_DISCORD_ROLE_IDS }}
           SA_SIGNAL_STATE: signal_state.json
           SA_GIT_CHECKPOINT: "true"
           MODE: ${{ inputs.mode }}
           EVENT_NAME: ${{ github.event_name }}
           MULTI_CRYPTO_LIVE_ENABLED: ${{ vars.MULTI_CRYPTO_LIVE_ENABLED }}
+
         run: |
           if [[ "$EVENT_NAME" == "schedule" ]]; then
-            if [[ "$MULTI_CRYPTO_LIVE_ENABLED" == "true" ]]; then MODE=live; else MODE=dry-run; fi
+            if [[ "$MULTI_CRYPTO_LIVE_ENABLED" == "true" ]]; then
+              MODE=live
+            else
+              MODE=dry-run
+            fi
           fi
+
           case "$MODE" in
-            live) python -u btc_signal.py ;;
-            test-discord) python -u btc_signal.py --test-discord ;;
-            *) python -u btc_signal.py --dry-run ;;
+            live)
+              python -u btc_signal.py
+              ;;
+            test-discord)
+              python -u btc_signal.py --test-discord
+              ;;
+            *)
+              python -u btc_signal.py --dry-run
+              ;;
           esac
+
       - name: Persist signal history (including after errors)
         if: always() && (inputs.mode == 'live' || (github.event_name == 'schedule' && vars.MULTI_CRYPTO_LIVE_ENABLED == 'true'))
         run: |
-          if [[ ! -f signal_state.json ]]; then exit 0; fi
+          if [[ ! -f signal_state.json ]]; then
+            exit 0
+          fi
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
           git add signal_state.json
-          if git diff --cached --quiet; then exit 0; fi
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
           git commit -m 'chore: save signal dedupe state [skip ci]'
           git push
