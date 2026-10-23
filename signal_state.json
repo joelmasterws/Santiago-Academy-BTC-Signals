@@ -1739,7 +1739,7 @@
     },
     "d44cf570e36ad66e8715ebe6": {
       "activated_at": "2026-10-22T16:14:59.999000+00:00",
-      "closed_at": null,
+      "closed_at": "2026-10-23T02:44:59.999000+00:00",
       "entry": 2392.79,
       "entry_zone": [
         2392.79,
@@ -1752,14 +1752,14 @@
       ],
       "id": "d44cf570e36ad66e8715ebe6",
       "issued_at": "2026-10-22T15:46:26.605623+00:00",
-      "last_checked_at": "2026-10-23T01:59:59.999000+00:00",
+      "last_checked_at": "2026-10-23T02:44:59.999000+00:00",
       "message_id": "1562854655845990560",
       "result": "WIN",
       "result_posted": "1562879626567487620",
       "side": "BEARISH",
-      "status": "ACTIVE",
+      "status": "CLOSED",
       "stop": 2406.3093200558096,
-      "stop_at": null,
+      "stop_at": "2026-10-23T02:44:59.999000+00:00",
       "symbol": "ETH",
       "targets": [
         2379.2706799441903,
