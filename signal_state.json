@@ -1027,16 +1027,17 @@
         0.07941806573807969
       ],
       "hit_at": [
-        null,
+        "2026-10-23T22:29:59.999000+00:00",
         null,
         null
       ],
       "id": "767ec1a793f5b593e3d5d0f5",
       "issued_at": "2026-10-23T21:43:36.433456+00:00",
-      "last_checked_at": "2026-10-23T21:59:59.999000+00:00",
+      "last_checked_at": "2026-10-23T22:29:59.999000+00:00",
       "message_id": "1563306926597607535",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1563321328612937780",
       "side": "BEARISH",
       "status": "ACTIVE",
       "stop": 0.0795806573807969,
