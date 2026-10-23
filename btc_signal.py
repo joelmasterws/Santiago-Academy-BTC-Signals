@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import signal_tracking as tracking
+import sa_pdf_reports as pdf_reports
+import public_distribution
 from discord_delivery import acknowledged_post
 
 ASSETS = ('BTC','ETH','BNB','XRP','SOL','DOGE','TRX','ADA','LINK','AVAX')
@@ -284,17 +286,48 @@ def main():
             pending_extra_win = (bool(extra_win_webhook) and tracked.get('result') == 'WIN'
                                  and bool((tracked.get('hit_at') or [None])[0])
                                  and not tracked.get('win_extra_discord_posted'))
-            if tracked.get('closed_at') and not pending_extra_win and (tracked.get('result') not in ('WIN','LOSS') or tracked.get('result_posted')):
+            pending_pdf = (tracked.get('result_pdf_eligible') and tracked.get('result_posted') and not tracked.get('result_pdf_posted'))
+            pending_win_pdf = (bool(extra_win_webhook) and tracked.get('result') == 'WIN' and tracked.get('result_pdf_eligible') and not tracked.get('win_pdf_posted'))
+            if tracked.get('closed_at') and not pending_extra_win and not pending_pdf and not pending_win_pdf and (tracked.get('result') not in ('WIN','LOSS') or tracked.get('result_posted')):
                 continue
             try:
                 history=candles(tracked['symbol'],'15m',limit=500)
                 events=tracking.advance(tracked,history,datetime.now(timezone.utc))
                 # A WIN is final for grading at TP1, even though TP2/TP3 continue tracking.
                 if tracked.get('result') in ('WIN','LOSS') and not tracked.get('result_posted'):
+                    tracked['result_pdf_eligible'] = True
                     mid=tracking.send_result(SESSION,webhook,tracked)
                     tracked['result_posted']=mid
                     checkpoint(state)
                     print(f'{tracked["symbol"]}: FINAL_RESULT {tracked["result"]} message={mid}',flush=True)
+                # Attach an individual branded PDF for newly graded outcomes only.
+                # Mark before sending? No: only an acknowledged Discord message is persisted.
+                if tracked.get('result') in ('WIN','LOSS') and tracked.get('result_posted') and not tracked.get('result_pdf_posted'):
+                    # Existing historic grades should not be replayed on first deployment.
+                    if tracked.get('result_pdf_eligible'):
+                        pdf = pdf_reports.trade_pdf(tracked)
+                        pdf_mid = pdf_reports.send_pdf(SESSION, webhook,
+                            f'📄 Santiago Academy {tracked["result"]} Trade Report — {tracked["symbol"]}',
+                            pdf, f'Santiago_Academy_{tracked["result"]}_{tracked["symbol"]}_{str(tracked.get("id","signal"))[:32]}.pdf')
+                        tracked['result_pdf_posted'] = pdf_mid
+                        checkpoint(state)
+                # Winning PDF is also delivered to the WIN-only channel.
+                if (extra_win_webhook and tracked.get('result') == 'WIN' and
+                        tracked.get('result_pdf_eligible') and tracked.get('result_posted') and
+                        not tracked.get('win_pdf_posted')):
+                    try:
+                        win_pdf_mid = pdf_reports.send_pdf(SESSION, extra_win_webhook,
+                            f'🟢 Santiago Academy Winning Trade PDF — {tracked["symbol"]}',
+                            pdf_reports.trade_pdf(tracked),
+                            f'Santiago_Academy_WIN_{tracked["symbol"]}_{str(tracked.get("id","signal"))[:32]}.pdf')
+                        tracked['win_pdf_posted'] = win_pdf_mid
+                        checkpoint(state)
+                        public_distribution.enqueue('win:'+str(signal_id),'win',
+                            pdf_reports.trade_pdf(tracked),
+                            f'🟢 Santiago Academy WIN | {tracked["symbol"]} {tracked["side"]} | '
+                            'TP1 observed in market candles. Educational only; not verified profit.')
+                    except Exception as win_pdf_exc:
+                        print(f'WIN_PDF_ERROR {signal_id}: {win_pdf_exc}',file=sys.stderr,flush=True)
                 save_state(state)
                 # Secondary delivery is isolated: failures cannot prevent primary reporting.
                 if (extra_win_webhook and tracked.get('result') == 'WIN'
@@ -311,8 +344,14 @@ def main():
             except Exception as exc:
                 print(f'TRACKING_ERROR {signal_id}: {exc}',file=sys.stderr,flush=True)
                 raise
-        reports=tracking.due_reports(state['signals'],state,datetime.now(timezone.utc),SESSION,webhook,checkpoint=lambda: checkpoint(state))
-        if reports: print('REPORT_IMAGES_POSTED '+','.join(reports),flush=True)
+        report_webhooks = {
+            'daily': os.environ.get('DISCORD_DAILY_WEBHOOK_URL', '').strip(),
+            'weekly': os.environ.get('DISCORD_WEEKLY_WEBHOOK_URL', '').strip(),
+            'monthly': os.environ.get('DISCORD_MONTHLY_WEBHOOK_URL', '').strip(),
+        }
+        reports=pdf_reports.send_due_reports(state['signals'],state,datetime.now(timezone.utc),SESSION,report_webhooks,checkpoint=lambda: checkpoint(state),
+            public_webhook=os.environ.get('DISCORD_WINS_WEBHOOK_URL','').strip())
+        if reports: print('REPORT_PDFS_POSTED '+','.join(reports),flush=True)
         save_state(state)
     count=0
     for symbol in ASSETS:
