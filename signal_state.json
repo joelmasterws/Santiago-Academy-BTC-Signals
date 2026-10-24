@@ -12,6 +12,7 @@
   },
   "sent": {
     "05bf7bbe45cdbd2ee2a7952a": 1792795265.918168,
+    "181cec485964603c6e4bbfba": 1792800289.444922,
     "1996944e741c7856bbd2d796": 1792676493.344746,
     "360782d127cb453d9b7a0e40": 1792676496.934348,
     "3f2dc350d11ccaed969b6e8b": 1792671319.074085,
@@ -72,7 +73,7 @@
       ],
       "id": "05bf7bbe45cdbd2ee2a7952a",
       "issued_at": "2026-10-23T22:41:05.918168+00:00",
-      "last_checked_at": "2026-10-23T23:29:59.999000+00:00",
+      "last_checked_at": "2026-10-23T23:59:59.999000+00:00",
       "message_id": "1563321394916499578",
       "result": null,
       "result_posted": false,
@@ -275,6 +276,36 @@
       ],
       "updates": [],
       "win_extra_discord_posted": "1563259428868726864"
+    },
+    "181cec485964603c6e4bbfba": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 2384.96,
+      "entry_zone": [
+        2384.96,
+        2386.170363928098
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "181cec485964603c6e4bbfba",
+      "issued_at": "2026-10-24T00:04:49.444922+00:00",
+      "last_checked_at": null,
+      "message_id": "1563342464620695682",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 2397.0636392809797,
+      "stop_at": null,
+      "symbol": "ETH",
+      "targets": [
+        2372.8563607190204,
+        2360.7527214380407,
+        2348.649082157061
+      ]
     },
     "1996944e741c7856bbd2d796": {
       "activated_at": null,
@@ -821,7 +852,7 @@
       ],
       "id": "48475ecd0058e2752054d056",
       "issued_at": "2026-10-23T23:40:52.119040+00:00",
-      "last_checked_at": null,
+      "last_checked_at": "2026-10-23T23:59:59.999000+00:00",
       "message_id": "1563336435468206161",
       "result": null,
       "result_posted": false,
@@ -1283,7 +1314,7 @@
       ],
       "id": "85ec8b4b8e64533af189aff9",
       "issued_at": "2026-10-23T22:41:03.490314+00:00",
-      "last_checked_at": "2026-10-23T23:29:59.999000+00:00",
+      "last_checked_at": "2026-10-23T23:59:59.999000+00:00",
       "message_id": "1563321384568889354",
       "result": null,
       "result_posted": false,
@@ -2402,7 +2433,7 @@
       ],
       "id": "f79184b1500480a0901b7098",
       "issued_at": "2026-10-23T22:41:00.863318+00:00",
-      "last_checked_at": "2026-10-23T23:29:59.999000+00:00",
+      "last_checked_at": "2026-10-23T23:59:59.999000+00:00",
       "message_id": "1563321371717800138",
       "result": null,
       "result_posted": false,
