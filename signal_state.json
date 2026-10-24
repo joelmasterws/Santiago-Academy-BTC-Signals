@@ -19,6 +19,7 @@
     "3f2dc350d11ccaed969b6e8b": 1792671319.074085,
     "48475ecd0058e2752054d056": 1792798852.11904,
     "4b38afcfa6ebe2433f9c2b05": 1792699405.858577,
+    "4bbf86ea600d0efa705749e8": 1792824786.421302,
     "5e40be1344d14c5ac3e6a829": 1792806012.641855,
     "650cc445bff0aebb09f3e215": 1792820645.059978,
     "66cfbdd3c0f0b2ac594eeb05": 1792824783.728728,
@@ -933,6 +934,36 @@
         102.12693870508235
       ],
       "win_extra_discord_posted": "1563259508111835226"
+    },
+    "4bbf86ea600d0efa705749e8": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 0.07825,
+      "entry_zone": [
+        0.07825,
+        0.07826323036740739
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "4bbf86ea600d0efa705749e8",
+      "issued_at": "2026-10-24T06:53:06.421302+00:00",
+      "last_checked_at": null,
+      "message_id": "1563445212481847336",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 0.07838230367407384,
+      "stop_at": null,
+      "symbol": "DOGE",
+      "targets": [
+        0.07811769632592616,
+        0.07798539265185232,
+        0.07785308897777848
+      ]
     },
     "560767a0556d07fcf4d4884b": {
       "activated_at": "2026-10-17T03:14:59.999000+00:00",
