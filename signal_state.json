@@ -36,7 +36,8 @@
     "d44cf570e36ad66e8715ebe6": 1792683986.605623,
     "db91518bc12c3f240aa69d7c": 1792781536.635989,
     "e10f0209035a543626dc8e5f": 1792697499.521639,
-    "f79184b1500480a0901b7098": 1792795260.863318
+    "f79184b1500480a0901b7098": 1792795260.863318,
+    "fc24be99f50c3ccca2014226": 1792833813.26865
   },
   "signals": {
     "0007ca6ab7f3aead0c75488b": {
@@ -1061,7 +1062,7 @@
       ],
       "id": "4bbf86ea600d0efa705749e8",
       "issued_at": "2026-10-24T06:53:06.421302+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563445212481847336",
       "result": null,
       "result_posted": false,
@@ -1184,7 +1185,7 @@
       ],
       "id": "5e40be1344d14c5ac3e6a829",
       "issued_at": "2026-10-24T01:40:12.641855+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563366468148789350",
       "result": null,
       "result_posted": false,
@@ -1310,7 +1311,7 @@
       ],
       "id": "66cfbdd3c0f0b2ac594eeb05",
       "issued_at": "2026-10-24T06:53:03.728728+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563445201471541308",
       "result": null,
       "result_posted": false,
@@ -1586,7 +1587,7 @@
       ],
       "id": "85ec8b4b8e64533af189aff9",
       "issued_at": "2026-10-23T22:41:03.490314+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563321384568889354",
       "result": null,
       "result_posted": false,
@@ -1616,7 +1617,7 @@
       ],
       "id": "8710f90bccc95726a99af197",
       "issued_at": "2026-10-24T06:09:52.446148+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563434331840446675",
       "result": null,
       "result_posted": false,
@@ -2767,7 +2768,7 @@
       ],
       "id": "f79184b1500480a0901b7098",
       "issued_at": "2026-10-23T22:41:00.863318+00:00",
-      "last_checked_at": "2026-10-24T08:44:59.999000+00:00",
+      "last_checked_at": "2026-10-24T09:14:59.999000+00:00",
       "message_id": "1563321371717800138",
       "result": null,
       "result_posted": false,
@@ -2813,6 +2814,36 @@
       ],
       "updates": [],
       "win_extra_discord_posted": "1563259618455461911"
+    },
+    "fc24be99f50c3ccca2014226": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 2363.11,
+      "entry_zone": [
+        2363.11,
+        2363.6789942099063
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "fc24be99f50c3ccca2014226",
+      "issued_at": "2026-10-24T09:23:33.268650+00:00",
+      "last_checked_at": null,
+      "message_id": "1563483073666879610",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 2368.7999420990614,
+      "stop_at": null,
+      "symbol": "ETH",
+      "targets": [
+        2357.420057900939,
+        2351.7301158018777,
+        2346.0401737028164
+      ]
     }
   }
 }
