@@ -3120,7 +3120,7 @@
       ]
     },
     "fe21264830e28fa3fc5fcff2": {
-      "activated_at": null,
+      "activated_at": "2026-10-25T14:44:59.999000+00:00",
       "closed_at": null,
       "entry": 0.20313,
       "entry_zone": [
@@ -3134,12 +3134,12 @@
       ],
       "id": "fe21264830e28fa3fc5fcff2",
       "issued_at": "2026-10-25T11:08:38.314117+00:00",
-      "last_checked_at": "2026-10-25T14:14:59.999000+00:00",
+      "last_checked_at": "2026-10-25T14:44:59.999000+00:00",
       "message_id": "1563871904899801132",
       "result": null,
       "result_posted": false,
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 0.20377127543779705,
       "stop_at": null,
       "symbol": "ADA",
