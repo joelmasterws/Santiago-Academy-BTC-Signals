@@ -2375,16 +2375,17 @@
         2328.6776218936316
       ],
       "hit_at": [
-        null,
-        null,
+        "2026-10-26T01:44:59.999000+00:00",
+        "2026-10-26T01:59:59.999000+00:00",
         null
       ],
       "id": "c29eb5972e54717ae1845076",
       "issued_at": "2026-10-26T00:01:49.667142+00:00",
-      "last_checked_at": "2026-10-26T01:29:59.999000+00:00",
+      "last_checked_at": "2026-10-26T02:14:59.999000+00:00",
       "message_id": "1564066486127951914",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1564101039500566630",
       "side": "BEARISH",
       "status": "ACTIVE",
       "stop": 2339.996218936316,
