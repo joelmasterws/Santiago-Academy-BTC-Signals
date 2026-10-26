@@ -42,6 +42,7 @@
     "96f8f9dbc004aa42523f3757": 1792833816.31297,
     "c29eb5972e54717ae1845076": 1792972909.667142,
     "c4e8d63a20725c9e81e94c31": 1792852942.416687,
+    "c5fd88afddf05a6cf859e8c1": 1793002634.624861,
     "db91518bc12c3f240aa69d7c": 1792781536.635989,
     "f26068fb9fdb98867caab1dd": 1792842999.412769,
     "f79184b1500480a0901b7098": 1792795260.863318,
@@ -400,7 +401,7 @@
       ]
     },
     "1e0647877246b6a9e51babf9": {
-      "activated_at": null,
+      "activated_at": "2026-10-26T08:14:59.999000+00:00",
       "closed_at": null,
       "entry": 100.15,
       "entry_zone": [
@@ -414,12 +415,12 @@
       ],
       "id": "1e0647877246b6a9e51babf9",
       "issued_at": "2026-10-26T03:48:14.865469+00:00",
-      "last_checked_at": "2026-10-26T07:14:59.999000+00:00",
+      "last_checked_at": "2026-10-26T08:14:59.999000+00:00",
       "message_id": "1564123466888773735",
       "result": null,
       "result_posted": false,
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 100.70863764651773,
       "stop_at": null,
       "symbol": "SOL",
@@ -2415,7 +2416,7 @@
       ],
       "id": "c29eb5972e54717ae1845076",
       "issued_at": "2026-10-26T00:01:49.667142+00:00",
-      "last_checked_at": "2026-10-26T07:14:59.999000+00:00",
+      "last_checked_at": "2026-10-26T08:14:59.999000+00:00",
       "message_id": "1564066486127951914",
       "result": "WIN",
       "result_pdf_eligible": true,
@@ -2527,6 +2528,36 @@
         100.78959398292845
       ],
       "win_extra_discord_posted": "1563259575908696098"
+    },
+    "c5fd88afddf05a6cf859e8c1": {
+      "activated_at": null,
+      "closed_at": null,
+      "entry": 2304.51,
+      "entry_zone": [
+        2304.51,
+        2305.788165512143
+      ],
+      "hit_at": [
+        null,
+        null,
+        null
+      ],
+      "id": "c5fd88afddf05a6cf859e8c1",
+      "issued_at": "2026-10-26T08:17:14.624861+00:00",
+      "last_checked_at": null,
+      "message_id": "1564191162221461575",
+      "result": null,
+      "result_posted": false,
+      "side": "BEARISH",
+      "status": "WAITING",
+      "stop": 2317.291655121431,
+      "stop_at": null,
+      "symbol": "ETH",
+      "targets": [
+        2291.7283448785693,
+        2278.9466897571383,
+        2266.1650346357073
+      ]
     },
     "ce8faf484cbf55f4ec810bba": {
       "activated_at": "2026-10-17T09:29:59.999000+00:00",
