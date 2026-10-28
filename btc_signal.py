@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import os
 import sys
 import subprocess
@@ -123,7 +124,18 @@ def metrics(df):
 def evaluate(symbol, m15, h1, h4):
     a,b,c=metrics(m15),metrics(h1),metrics(h4)
     price=float(m15.iloc[-1]['close'])
-    volume_ratio=float(m15['volume'].iloc[-1]/m15['volume'].tail(21).iloc[:-1].mean())
+    recent_volumes = pd.to_numeric(m15['volume'].tail(21), errors='coerce')
+    baseline = float(recent_volumes.iloc[:-1].mean())
+    current_volume = float(recent_volumes.iloc[-1])
+    if not (math.isfinite(baseline) and baseline > 0 and
+            math.isfinite(current_volume) and current_volume >= 0):
+        print(f'{symbol}: FILTER_DIAGNOSTIC invalid_15m_volume '
+              f'current={current_volume} baseline={baseline}; rejecting safely', flush=True)
+        return None
+    volume_ratio = current_volume / baseline
+    if not math.isfinite(volume_ratio):
+        print(f'{symbol}: FILTER_DIAGNOSTIC nonfinite_volume_ratio; rejecting safely', flush=True)
+        return None
     # Higher selectivity, not a guaranteed win-rate target.
     bullish=(volume_ratio>=1.15 and 54<=a['rsi']<=70 and
              c['ema50']>c['ema200'] and c['macd_hist']>0 and
@@ -137,7 +149,43 @@ def evaluate(symbol, m15, h1, h4):
              b['ema50']<b['ema200'] and price<b['ema50'] and
              price<c['ema50'] and b['macd_hist']<0 and
              32<=b['rsi']<=48 and c['rsi']<=50)
-    if not (bullish or bearish): return None
+    if not (bullish or bearish):
+        checks = {
+            'volume_ratio_ge_1_15': volume_ratio >= 1.15,
+            'bull_15m_rsi_54_70': 54 <= a['rsi'] <= 70,
+            'bull_4h_ema50_gt_ema200': c['ema50'] > c['ema200'],
+            'bull_4h_macd_positive': c['macd_hist'] > 0,
+            'bull_price_gt_15m_ema20': price > a['ema20'],
+            'bull_15m_ema20_gt_ema50': a['ema20'] > a['ema50'],
+            'bull_1h_ema50_gt_ema200': b['ema50'] > b['ema200'],
+            'bull_price_gt_1h_ema50': price > b['ema50'],
+            'bull_price_gt_4h_ema50': price > c['ema50'],
+            'bull_1h_macd_positive': b['macd_hist'] > 0,
+            'bull_1h_rsi_52_68': 52 <= b['rsi'] <= 68,
+            'bull_4h_rsi_ge_50': c['rsi'] >= 50,
+            'bear_15m_rsi_30_46': 30 <= a['rsi'] <= 46,
+            'bear_4h_ema50_lt_ema200': c['ema50'] < c['ema200'],
+            'bear_4h_macd_negative': c['macd_hist'] < 0,
+            'bear_price_lt_15m_ema20': price < a['ema20'],
+            'bear_15m_ema20_lt_ema50': a['ema20'] < a['ema50'],
+            'bear_1h_ema50_lt_ema200': b['ema50'] < b['ema200'],
+            'bear_price_lt_1h_ema50': price < b['ema50'],
+            'bear_price_lt_4h_ema50': price < c['ema50'],
+            'bear_1h_macd_negative': b['macd_hist'] < 0,
+            'bear_1h_rsi_32_48': 32 <= b['rsi'] <= 48,
+            'bear_4h_rsi_le_50': c['rsi'] <= 50,
+        }
+        shared = ['volume_ratio_ge_1_15']
+        for side, prefix in (('BULL', 'bull_'), ('BEAR', 'bear_')):
+            failed = [key for key in shared if not checks[key]]
+            failed += [key for key, passed in checks.items()
+                       if key.startswith(prefix) and not passed]
+            print(f'{symbol}: FILTER_DIAGNOSTIC {side} '
+                  f'failed={",".join(failed) or "none"} '
+                  f'volume_ratio={volume_ratio:.3f} '
+                  f'rsi15={a["rsi"]:.2f} rsi1h={b["rsi"]:.2f} '
+                  f'rsi4h={c["rsi"]:.2f}', flush=True)
+        return None
     side='BULLISH' if bullish else 'BEARISH'; sign=1 if bullish else -1
     atr=a['atr']
     if atr<=0:return None
