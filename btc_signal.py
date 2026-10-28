@@ -1,5 +1,6 @@
 """Santiago Academy multi-asset educational Discord signals. Never places orders."""
 import argparse
+import contextlib
 import hashlib
 import io
 import json
@@ -291,6 +292,96 @@ def audit_alternative_pair(symbol, primary_15m):
               f'error={type(exc).__name__}: {str(exc)[:180]}', flush=True)
 
 
+
+PAPER_USDT_ASSETS = ('BNB', 'DOGE', 'ADA', 'LINK')
+
+
+def observe_usdt_paper(state, symbol):
+    """Parallel research only; never affects USD live signals or Discord."""
+    if symbol not in PAPER_USDT_ASSETS:
+        return
+    book = state.setdefault('usdt_paper_signals', {})
+    try:
+        def get_frame(interval):
+            response = SESSION.get(
+                API, params={'symbol': symbol + 'USDT',
+                             'interval': interval, 'limit': 260}, timeout=15)
+            response.raise_for_status()
+            rows = response.json()
+            if not isinstance(rows, list) or len(rows) < 205:
+                raise ValueError('insufficient candles')
+            df = pd.DataFrame(rows)
+            for index, name in ((1, 'open'), (2, 'high'), (3, 'low'),
+                                (4, 'close'), (5, 'volume')):
+                df[name] = pd.to_numeric(df[index], errors='raise')
+            df['close_time'] = pd.to_datetime(df[6], unit='ms', utc=True)
+            df = df[df['close_time'] < pd.Timestamp.now(tz='UTC')].copy()
+            if len(df) < 200:
+                raise ValueError('insufficient completed candles')
+            age = pd.Timestamp.now(tz='UTC') - df.iloc[-1]['close_time']
+            if age > pd.Timedelta(minutes={'15m': 45, '1h': 150, '4h': 600}[interval]):
+                raise ValueError('stale candles')
+            return df
+
+        m15, h1, h4 = (get_frame(k) for k in ('15m', '1h', '4h'))
+        # Resolve prior paper observations using the first four subsequent bars.
+        for key, record in list(book.items()):
+            if record.get('symbol') != symbol or record.get('status') != 'PENDING':
+                continue
+            start = pd.Timestamp(record['at'])
+            future = m15[m15['close_time'] > start].head(4)
+            if len(future) < 4:
+                continue
+            sign = 1 if record['side'] == 'BULLISH' else -1
+            entry = float(record['entry'])
+            stop = float(record['stop'])
+            target = float(record['target1'])
+            result = 'TIME_EXIT'
+            exit_price = float(future.iloc[-1]['close'])
+            for _, bar in future.iterrows():
+                hit_stop = float(bar['low']) <= stop if sign > 0 else float(bar['high']) >= stop
+                hit_target = float(bar['high']) >= target if sign > 0 else float(bar['low']) <= target
+                if hit_stop:
+                    result, exit_price = 'STOP', stop  # conservative if both hit
+                    break
+                if hit_target:
+                    result, exit_price = 'TARGET1', target
+                    break
+            record['status'] = result
+            record['exit'] = exit_price
+            record['return_pct'] = round(sign * (exit_price / entry - 1) * 100, 4)
+            print(f'{symbol}: USDT_PAPER_OUTCOME result={result} '
+                  f'return_pct={record["return_pct"]:+.4f} key={key} '
+                  f'NO_FEES_OR_SLIPPAGE', flush=True)
+
+        # Suppress normal production filter logs for paper-only evaluation.
+        with contextlib.redirect_stdout(io.StringIO()):
+            candidate = evaluate(symbol, m15, h1, h4)
+        if candidate and candidate['key'] not in book:
+            record = {'symbol': symbol, 'side': candidate['side'],
+                      'at': candidate['at'].isoformat(),
+                      'entry': candidate['entry'], 'stop': candidate['stop'],
+                      'target1': candidate['targets'][0],
+                      'status': 'PENDING', 'market': symbol + 'USDT'}
+            book[candidate['key']] = record
+            print(f'{symbol}: USDT_PAPER_CANDIDATE side={candidate["side"]} '
+                  f'entry={candidate["entry"]:.8g} key={candidate["key"]} '
+                  f'NOT_POSTED', flush=True)
+        else:
+            print(f'{symbol}: USDT_PAPER_SCAN '
+                  f'status={"QUALIFIED_EXISTING" if candidate else "NO_SETUP"} '
+                  f'NOT_POSTED', flush=True)
+        completed = sorted(
+            ((k, v) for k, v in book.items() if v.get('status') != 'PENDING'),
+            key=lambda item: item[1].get('at', ''), reverse=True)
+        for key, _ in completed[500:]:
+            del book[key]
+    except (requests.RequestException, ValueError, KeyError, IndexError,
+            TypeError) as exc:
+        print(f'{symbol}: USDT_PAPER_ERROR {type(exc).__name__}: {exc}',
+              flush=True)
+
+
 def shadow_reversal(symbol, m15, h1, h4):
     """Observation only: never creates a Discord signal or places an order."""
     a, b, c = metrics(m15), metrics(h1), metrics(h4)
@@ -572,6 +663,7 @@ def main():
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
             audit_market_data(state, symbol, m15, h1, h4)
             audit_alternative_pair(symbol, m15)
+            observe_usdt_paper(state, symbol)
             observe_shadow(state, symbol, m15, h1, h4)
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
