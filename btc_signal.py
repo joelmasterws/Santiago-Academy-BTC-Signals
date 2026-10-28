@@ -206,6 +206,39 @@ def evaluate(symbol, m15, h1, h4):
 
 
 
+
+def audit_market_data(state, symbol, m15, h1, h4):
+    """Read-only market data telemetry; does not alter signal eligibility."""
+    snapshots = state.setdefault('market_data_audit', {})
+    previous = snapshots.get(symbol, {})
+    now = pd.Timestamp.now(tz='UTC')
+    details = []
+    for interval, frame in (('15m', m15), ('1h', h1), ('4h', h4)):
+        latest = frame.iloc[-1]['close_time']
+        age_minutes = (now - latest).total_seconds() / 60
+        details.append(f'{interval}={latest.isoformat()} age_min={age_minutes:.1f}')
+    latest_15m = m15.iloc[-1]['close_time'].isoformat()
+    last_volume = float(m15.iloc[-1]['volume'])
+    volumes = pd.to_numeric(m15['volume'].tail(21), errors='coerce')
+    baseline = float(volumes.iloc[:-1].mean())
+    previous_15m = previous.get('last_15m')
+    previous_checked = previous.get('checked_at')
+    status = 'FIRST_OBSERVATION'
+    if previous_15m:
+        if latest_15m != previous_15m:
+            status = 'ADVANCED'
+        else:
+            elapsed = ((now - pd.Timestamp(previous_checked)).total_seconds() / 60
+                       if previous_checked else 0)
+            status = 'UNCHANGED_EXPECTED' if elapsed < 15 else 'UNCHANGED_REVIEW'
+    zero_count = int((volumes == 0).sum())
+    print(f'{symbol}: DATA_AUDIT status={status} '
+          f'{" ".join(details)} '
+          f'volume15={last_volume:.8g} baseline20={baseline:.8g} '
+          f'zero_volume_candles21={zero_count}/21', flush=True)
+    snapshots[symbol] = {'last_15m': latest_15m, 'checked_at': now.isoformat(),
+                         'volume15': last_volume, 'baseline20': baseline}
+
 def shadow_reversal(symbol, m15, h1, h4):
     """Observation only: never creates a Discord signal or places an order."""
     a, b, c = metrics(m15), metrics(h1), metrics(h4)
@@ -485,6 +518,7 @@ def main():
         signal = None
         try:
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
+            audit_market_data(state, symbol, m15, h1, h4)
             observe_shadow(state, symbol, m15, h1, h4)
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
