@@ -239,6 +239,58 @@ def audit_market_data(state, symbol, m15, h1, h4):
     snapshots[symbol] = {'last_15m': latest_15m, 'checked_at': now.isoformat(),
                          'volume15': last_volume, 'baseline20': baseline}
 
+
+def audit_alternative_pair(symbol, primary_15m):
+    """Compare Binance.US USDT market without using it for live signal decisions."""
+    pair = symbol + 'USDT'
+    try:
+        response = SESSION.get(
+            API, params={'symbol': pair, 'interval': '15m', 'limit': 30},
+            timeout=12)
+        response.raise_for_status()
+        rows = response.json()
+        if not isinstance(rows, list) or len(rows) < 22:
+            print(f'{symbol}: PAIR_AUDIT pair={pair} status=INSUFFICIENT_CANDLES',
+                  flush=True)
+            return
+        frame = pd.DataFrame(rows)
+        frame['volume'] = pd.to_numeric(frame[5], errors='coerce')
+        frame['close'] = pd.to_numeric(frame[4], errors='coerce')
+        frame['close_time'] = pd.to_datetime(frame[6], unit='ms', utc=True)
+        now = pd.Timestamp.now(tz='UTC')
+        frame = frame[frame['close_time'] < now].tail(21)
+        if len(frame) < 21 or frame[['volume', 'close']].isna().any().any():
+            print(f'{symbol}: PAIR_AUDIT pair={pair} status=INVALID_CANDLES',
+                  flush=True)
+            return
+        age = (now - frame.iloc[-1]['close_time']).total_seconds() / 60
+        if age > 45:
+            print(f'{symbol}: PAIR_AUDIT pair={pair} status=STALE '
+                  f'age_min={age:.1f}', flush=True)
+            return
+        volumes = frame['volume']
+        zero_count = int((volumes == 0).sum())
+        active = int((volumes > 0).sum())
+        primary_volumes = pd.to_numeric(primary_15m['volume'].tail(21),
+                                        errors='coerce')
+        primary_zero = int((primary_volumes == 0).sum())
+        # Price comparisons are indicative only: USD and USDT are not interchangeable.
+        primary_close = float(primary_15m.iloc[-1]['close'])
+        alternate_close = float(frame.iloc[-1]['close'])
+        divergence = ((alternate_close / primary_close - 1) * 100
+                      if primary_close > 0 else float('nan'))
+        print(f'{symbol}: PAIR_AUDIT pair={pair} status=OBSERVED '
+              f'age_min={age:.1f} zero_volume_candles21={zero_count}/21 '
+              f'active_candles21={active}/21 primary_usd_zero21={primary_zero}/21 '
+              f'price_difference_pct={divergence:+.3f} '
+              f'latest_close={frame.iloc[-1]["close_time"].isoformat()} '
+              f'NOT_USED_FOR_SIGNALS', flush=True)
+    except (requests.RequestException, ValueError, KeyError, IndexError,
+            TypeError, ZeroDivisionError) as exc:
+        print(f'{symbol}: PAIR_AUDIT pair={pair} status=UNAVAILABLE '
+              f'error={type(exc).__name__}: {str(exc)[:180]}', flush=True)
+
+
 def shadow_reversal(symbol, m15, h1, h4):
     """Observation only: never creates a Discord signal or places an order."""
     a, b, c = metrics(m15), metrics(h1), metrics(h4)
@@ -519,6 +571,7 @@ def main():
         try:
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
             audit_market_data(state, symbol, m15, h1, h4)
+            audit_alternative_pair(symbol, m15)
             observe_shadow(state, symbol, m15, h1, h4)
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
