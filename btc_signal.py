@@ -205,6 +205,85 @@ def evaluate(symbol, m15, h1, h4):
             'at':m15.iloc[-1]['close_time'].to_pydatetime(),'volume_ratio':volume_ratio}
 
 
+
+def shadow_reversal(symbol, m15, h1, h4):
+    """Observation only: never creates a Discord signal or places an order."""
+    a, b, c = metrics(m15), metrics(h1), metrics(h4)
+    price = float(m15.iloc[-1]['close'])
+    volumes = pd.to_numeric(m15['volume'].tail(21), errors='coerce')
+    baseline = float(volumes.iloc[:-1].mean())
+    current = float(volumes.iloc[-1])
+    if not (math.isfinite(baseline) and baseline > 0 and
+            math.isfinite(current) and current > 0 and
+            math.isfinite(price) and price > 0):
+        print(f'{symbol}: SHADOW_SKIP reason=invalid_or_zero_volume', flush=True)
+        return None
+    ratio = current / baseline
+    if ratio < 1.15 or not math.isfinite(ratio):
+        return None
+    # Candidate: short-term momentum counter to established 4H EMA trend.
+    bull = (c['ema50'] < c['ema200'] and
+            52 <= a['rsi'] <= 70 and b['rsi'] >= 50 and
+            price > a['ema20'] and b['macd_hist'] > 0)
+    bear = (c['ema50'] > c['ema200'] and
+            30 <= a['rsi'] <= 48 and b['rsi'] <= 50 and
+            price < a['ema20'] and b['macd_hist'] < 0)
+    if not (bull or bear):
+        return None
+    atr = a['atr']
+    if not (math.isfinite(atr) and atr > 0 and
+            0.001 <= 1.5 * atr / price <= 0.035):
+        return None
+    side = 'BULLISH' if bull else 'BEARISH'
+    at = m15.iloc[-1]['close_time'].isoformat()
+    return {'symbol': symbol, 'side': side, 'entry': price,
+            'atr': atr, 'at': at, 'volume_ratio': ratio,
+            'rsi15': a['rsi'], 'rsi1h': b['rsi'], 'rsi4h': c['rsi']}
+
+
+def observe_shadow(state, symbol, m15, h1, h4):
+    """Track paper candidates over four completed 15m candles; no Discord delivery."""
+    book = state.setdefault('shadow_reversals', {})
+    current_time = m15.iloc[-1]['close_time']
+    for key, record in list(book.items()):
+        if record.get('symbol') != symbol or record.get('status') != 'PENDING':
+            continue
+        start = pd.Timestamp(record['at'])
+        future = m15[(m15['close_time'] > start) &
+                     (m15['close_time'] <= start + pd.Timedelta(hours=1))]
+        if len(future) < 4:
+            continue
+        entry = float(record['entry'])
+        sign = 1 if record['side'] == 'BULLISH' else -1
+        end = float(future.iloc[3]['close'])
+        record['status'] = 'OBSERVED'
+        record['end_close'] = end
+        record['return_pct'] = round(sign * (end / entry - 1) * 100, 4)
+        record['observed_at'] = future.iloc[3]['close_time'].isoformat()
+        print(f'{symbol}: SHADOW_OUTCOME side={record["side"]} '
+              f'four_bar_return_pct={record["return_pct"]:+.4f} '
+              f'key={key}', flush=True)
+    candidate = shadow_reversal(symbol, m15, h1, h4)
+    if candidate:
+        key = hashlib.sha256(
+            f'{symbol}|{candidate["side"]}|{candidate["at"]}'.encode()
+        ).hexdigest()[:24]
+        if key not in book:
+            candidate['status'] = 'PENDING'
+            book[key] = candidate
+            print(f'{symbol}: SHADOW_CANDIDATE side={candidate["side"]} '
+                  f'entry={candidate["entry"]:.8g} '
+                  f'volume_ratio={candidate["volume_ratio"]:.3f} '
+                  f'key={key} (NOT POSTED)', flush=True)
+    # Retain a bounded history; never remove pending observations.
+    completed = sorted(
+        ((key, item) for key, item in book.items()
+         if item.get('status') == 'OBSERVED'),
+        key=lambda pair: pair[1].get('at', ''), reverse=True)
+    for key, _ in completed[500:]:
+        del book[key]
+
+
 def fmt(x):
     return f'${x:,.2f}' if abs(x)>=10 else f'${x:,.5f}'.rstrip('0').rstrip('.')
 
@@ -406,6 +485,7 @@ def main():
         signal = None
         try:
             m15,h1,h4=candles(symbol,'15m'),candles(symbol,'1h'),candles(symbol,'4h')
+            observe_shadow(state, symbol, m15, h1, h4)
             signal=evaluate(symbol,m15,h1,h4)
             if not signal:
                 print(f'{symbol}: NO TRADE (filters not aligned)',flush=True);continue
