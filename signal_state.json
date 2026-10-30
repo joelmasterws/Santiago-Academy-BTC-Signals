@@ -1485,7 +1485,7 @@
       ]
     },
     "5752130f8bf8d4b9257bb08e": {
-      "activated_at": null,
+      "activated_at": "2026-10-30T13:44:59.999000+00:00",
       "closed_at": null,
       "entry": 2222.87,
       "entry_zone": [
@@ -1493,18 +1493,19 @@
         2224.1580474042885
       ],
       "hit_at": [
-        null,
+        "2026-10-30T13:59:59.999000+00:00",
         null,
         null
       ],
       "id": "5752130f8bf8d4b9257bb08e",
       "issued_at": "2026-10-30T10:19:01.992439+00:00",
-      "last_checked_at": "2026-10-30T13:29:59.999000+00:00",
+      "last_checked_at": "2026-10-30T14:29:59.999000+00:00",
       "message_id": "1565671362708644050",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1565736168388296743",
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 2235.750474042887,
       "stop_at": null,
       "symbol": "ETH",
