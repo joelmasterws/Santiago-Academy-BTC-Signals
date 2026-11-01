@@ -925,25 +925,26 @@
     },
     "1cdc6f6b427964a9f35eaef5": {
       "activated_at": "2026-10-31T21:44:59.999000+00:00",
-      "closed_at": null,
+      "closed_at": "2026-11-01T00:59:59.999000+00:00",
       "entry": 0.3154,
       "entry_zone": [
         0.3154,
         0.31550910889636485
       ],
       "hit_at": [
-        null,
-        null,
-        null
+        "2026-11-01T00:59:59.999000+00:00",
+        "2026-11-01T00:59:59.999000+00:00",
+        "2026-11-01T00:59:59.999000+00:00"
       ],
       "id": "1cdc6f6b427964a9f35eaef5",
       "issued_at": "2026-10-31T21:17:03.495686+00:00",
-      "last_checked_at": "2026-11-01T00:44:59.999000+00:00",
+      "last_checked_at": "2026-11-01T00:59:59.999000+00:00",
       "message_id": "1566199344162541768",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1566269052190720052",
       "side": "BEARISH",
-      "status": "ACTIVE",
+      "status": "CLOSED",
       "stop": 0.31649108896364847,
       "stop_at": null,
       "symbol": "TRX",
