@@ -4473,16 +4473,17 @@
         89.07158349214347
       ],
       "hit_at": [
-        null,
+        "2026-11-08T02:29:59.999000+00:00",
         null,
         null
       ],
       "id": "d31f09b99980a27dea53be2d",
       "issued_at": "2026-11-07T22:19:46.708966+00:00",
-      "last_checked_at": "2026-11-08T02:14:59.999000+00:00",
+      "last_checked_at": "2026-11-08T03:14:59.999000+00:00",
       "message_id": "1568751846816878673",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1568827152319643730",
       "side": "BEARISH",
       "status": "ACTIVE",
       "stop": 89.26583492143473,
