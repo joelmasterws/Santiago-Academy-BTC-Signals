@@ -3564,16 +3564,17 @@
         1.1514780265854285
       ],
       "hit_at": [
-        null,
-        null,
+        "2026-11-08T21:29:59.999000+00:00",
+        "2026-11-08T21:29:59.999000+00:00",
         null
       ],
       "id": "914de71722bae2eaeeb383af",
       "issued_at": "2026-11-08T20:29:00.065629+00:00",
-      "last_checked_at": "2026-11-08T20:59:59.999000+00:00",
+      "last_checked_at": "2026-11-08T21:44:59.999000+00:00",
       "message_id": "1569086355709886625",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1569106021488787537",
       "side": "BEARISH",
       "status": "ACTIVE",
       "stop": 1.1548802658542856,
