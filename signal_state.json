@@ -2114,7 +2114,7 @@
       "win_pdf_posted": "1563483009997607023"
     },
     "283136b4abef96565f16b60c": {
-      "activated_at": null,
+      "activated_at": "2026-11-10T14:44:59.999000+00:00",
       "closed_at": null,
       "entry": 84.24,
       "entry_zone": [
@@ -2122,18 +2122,19 @@
         84.30833889081852
       ],
       "hit_at": [
-        null,
+        "2026-11-10T14:44:59.999000+00:00",
         null,
         null
       ],
       "id": "283136b4abef96565f16b60c",
       "issued_at": "2026-11-10T13:52:23.256241+00:00",
-      "last_checked_at": null,
+      "last_checked_at": "2026-11-10T14:44:59.999000+00:00",
       "message_id": "1569711320901882029",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1569725257680425061",
       "side": "BEARISH",
-      "status": "WAITING",
+      "status": "ACTIVE",
       "stop": 84.92338890818527,
       "stop_at": null,
       "symbol": "SOL",
