@@ -3249,16 +3249,17 @@
         84.51285856534035
       ],
       "hit_at": [
-        null,
+        "2026-11-11T15:29:59.999000+00:00",
         null,
         null
       ],
       "id": "6d06924dca46e803e3905f55",
       "issued_at": "2026-11-10T15:29:59.493487+00:00",
-      "last_checked_at": "2026-11-11T14:44:59.999000+00:00",
+      "last_checked_at": "2026-11-11T15:29:59.999000+00:00",
       "message_id": "1569735884482285759",
-      "result": null,
-      "result_posted": false,
+      "result": "WIN",
+      "result_pdf_eligible": true,
+      "result_posted": "1570098795876720691",
       "side": "BEARISH",
       "status": "ACTIVE",
       "stop": 85.25858565340339,
